@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+    <PropertyGroup>
+        <!-- 固定的主版本和次版本 -->
+        <VersionMajor>1</VersionMajor>
+        <VersionMinor>$([MSBuild]::Subtract($([System.DateTime]::Now.Year), 2000))</VersionMinor>
+        <!-- 动态生成基于日期的 Build 和 Revision -->
+        <VersionBuild>$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
+        <VersionRevision>$([System.DateTime]::Now.ToString("HHmm"))</VersionRevision>
+        <!-- 组装完整版本号 -->
+        <AssemblyVersion>$(VersionMajor).$(VersionMinor).$(VersionBuild).$(VersionRevision)</AssemblyVersion>
+        <FileVersion>$(VersionMajor).$(VersionMinor).$(VersionBuild).$(VersionRevision)</FileVersion>
+        <InformationalVersion>$(VersionMajor).$(VersionMinor).$(VersionBuild).$(VersionRevision)</InformationalVersion>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.19" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.12"/>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
+    </ItemGroup>
+
+</Project>

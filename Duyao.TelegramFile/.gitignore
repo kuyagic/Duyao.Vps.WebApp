@@ -1,0 +1,4 @@
+﻿appsettings.Development.json
+appsettings.json
+*.http
+FodyWeavers.*

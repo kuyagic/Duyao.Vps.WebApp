@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Duyao.SmsForward", "Duyao.SmsForward\Duyao.SmsForward.csproj", "{65B87D09-320F-4BD0-A4C1-B9172AF74E79}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Duyao.TelegramFile", "Duyao.TelegramFile\Duyao.TelegramFile.csproj", "{326CDE47-0B24-42AF-BAF7-6EAE4F307A01}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{65B87D09-320F-4BD0-A4C1-B9172AF74E79}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65B87D09-320F-4BD0-A4C1-B9172AF74E79}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{65B87D09-320F-4BD0-A4C1-B9172AF74E79}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{65B87D09-320F-4BD0-A4C1-B9172AF74E79}.Release|Any CPU.Build.0 = Release|Any CPU
+		{326CDE47-0B24-42AF-BAF7-6EAE4F307A01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{326CDE47-0B24-42AF-BAF7-6EAE4F307A01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{326CDE47-0B24-42AF-BAF7-6EAE4F307A01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{326CDE47-0B24-42AF-BAF7-6EAE4F307A01}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
