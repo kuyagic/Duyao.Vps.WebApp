@@ -17,9 +17,9 @@ public class RootController : CustomBaseController
     private readonly Client _telegramClient;
 
     public RootController(Client telegramClient
-        ,ILogger<RootController> logger
+        , ILogger<RootController> logger
         , IConfiguration config
-        )
+    )
     {
         _configuration = config;
         _telegramClient = telegramClient;
@@ -34,23 +34,23 @@ public class RootController : CustomBaseController
             Message = "corebot running"
         }));
     }
-    
+
     public async Task<IActionResult> DownloadChatMedia(long chatId, int chatMessageId
         , CancellationToken cancellationToken
         , bool isFromChannel
-        )
+    )
     {
         Response.Headers.Append("x-client-ip", GetClientIp());
-        
+
         var mediaRet = await _telegramClient.GetMessageMedia(chatId, chatMessageId, isFromChannel);
 
         if (!mediaRet.Success)
         {
             _logger.LogWarning($"{mediaRet.Message}, {chatId},{chatMessageId}");
-            
+
             return NotFound("File not Found"); // 404 Not Found
         }
-        
+
         if (mediaRet.Type == TelegramGetMessageMediaResult.TelegramMessageMediaType.Document)
         {
             var doc = mediaRet.DocumentInfo;
@@ -77,6 +77,7 @@ public class RootController : CustomBaseController
             await _telegramClient.DownloadFileAsync(mediaRet.PhotoInfo, Response.Body);
             return new EmptyResult();
         }
+
         _logger.LogWarning($"{mediaRet.Message}, {chatId},{chatMessageId}");
         return NotFound("File Not Found"); // 404 Not Found
     }
@@ -92,13 +93,13 @@ public class RootController : CustomBaseController
             _logger.LogInformation($"Download From {GetClientIp()},{hash}");
             return await DownloadChatMedia(ret.chatId, (int)ret.messageId, cancellationToken, false);
         }
-        catch(Exception exp)
+        catch (Exception exp)
         {
             _logger.LogWarning($"Hash {hash} error,[{exp.Message}]");
             return BadRequest("File Not Found");
         }
     }
-    
+
     #region Internal Download Logic
 
     private Task<IActionResult> DownloadChatDocument(InputDocumentFileLocation fileLocation
@@ -112,14 +113,15 @@ public class RootController : CustomBaseController
         _logger.LogInformation($"File Size={Utils.FormatSize(fileSize)},({fileSize})");
         _logger.LogInformation($"File Name={fileName}");
         _logger.LogInformation($"Mime Type={mimeType}");
-        
+
         if (fileName.Equals("sticker.webm", StringComparison.InvariantCultureIgnoreCase)
-            && mimeType!=null
+            && mimeType != null
             && mimeType.Equals("video/webm", StringComparison.InvariantCultureIgnoreCase))
         {
             //tg 贴图 不完美验证，修改文件名。
             fileName = $"sticker_{fileLocation?.id}.webm.mp4";
         }
+
         // 2. Handle Range Request
         long fromBytes = 0;
         var untilBytes = fileSize - 1;
@@ -146,13 +148,15 @@ public class RootController : CustomBaseController
                 else
                 {
                     _logger.LogWarning("Invalid Range Header,not x-y");
-                    return Task.FromResult<IActionResult>(StatusCode(416, "Invalid Range Header")); // Or better error handling
+                    return Task.FromResult<IActionResult>(StatusCode(416,
+                        "Invalid Range Header")); // Or better error handling
                 }
             }
             else
             {
                 _logger.LogWarning("Invalid Range Header,not start with bytes=");
-                return Task.FromResult<IActionResult>(StatusCode(416, "Invalid Range Header")); // Or better error handling
+                return Task.FromResult<IActionResult>(StatusCode(416,
+                    "Invalid Range Header")); // Or better error handling
             }
 
             #endregion
@@ -174,17 +178,22 @@ public class RootController : CustomBaseController
         // 3. Streaming Logic
         var chunkSize = 1024 * 1024;
         var reqLength = untilBytes - fromBytes + 1;
-        
-        
+
+
         var defContentType = "application/octet-stream";
         var cd = "attachment; filename*=UTF-8''" + Uri.EscapeDataString(fileName);
-        if (!string.IsNullOrEmpty(mimeType) && mimeType.StartsWith("image/"))
+        if (!string.IsNullOrEmpty(mimeType) &&
+            (mimeType.StartsWith("image/")
+             || mimeType.StartsWith("audio/")
+             || mimeType.StartsWith("video/")
+            )
+           )
         {
-            _logger.LogInformation($"file maybe image {mimeType}");
+            _logger.LogInformation($"file maybe streamed {mimeType}");
             cd = "inline;";
             defContentType = mimeType;
         }
-        
+
         Response.ContentLength = reqLength;
         Response.Headers["Accept-Ranges"] = "bytes";
 
@@ -197,9 +206,9 @@ public class RootController : CustomBaseController
         {
             await stream.WriteAsyncEnumerableBytes(
                 _telegramClient.YieldFileAsync(fileLocation
-                    ,fromBytes
-                    ,untilBytes
-                    ,fileSize
+                    , fromBytes
+                    , untilBytes
+                    , fileSize
                     , chunkSize
                     , cancellationToken
                 )
