@@ -24,5 +24,8 @@
         <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
     </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\Duyao.ApiBase\Duyao.ApiBase.csproj" />
+    </ItemGroup>
 
 </Project>

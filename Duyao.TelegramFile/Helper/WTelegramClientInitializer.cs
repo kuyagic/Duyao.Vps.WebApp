@@ -1,5 +1,4 @@
 ﻿using Duyao.TelegramFile.Entity;
-using telegram.bot.webfile.Helper;
 using TL;
 using WTelegram;
 

@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace telegram.bot.webfile.Helper;
+namespace Duyao.TelegramFile.Helper;
 
 public static class Utils
 {

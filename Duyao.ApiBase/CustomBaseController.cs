@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Reflection;
+using Duyao.TelegramFile.Entity;
+using Microsoft.AspNetCore.Mvc;
 
-namespace Duyao.TelegramFile.BaseItem;
+namespace Duyao.ApiBase;
 
 public class CustomBaseController : ControllerBase
 {
@@ -30,21 +32,17 @@ public class CustomBaseController : ControllerBase
             : null;
     }
 
-    protected string ClientPublicKey()
+    public Task<IActionResult> GetVersion(string appName)
     {
-        try
+        // 获取当前程序集
+        var assembly = Assembly.GetExecutingAssembly();
+        // 获取版本信息
+        var version = assembly.GetName().Version;
+        var verString = string.Format(BuildInfo.BuildTime, appName, version);
+        return Task.FromResult<IActionResult>(Ok(new ApiResponse
         {
-            var ret = GetHeaderValue("x-client-token");
-            if (string.IsNullOrEmpty(ret))
-            {
-                throw new BadHttpRequestException("cipher token missing");
-            }
-
-            return ret;
-        }
-        catch
-        {
-            throw new BadHttpRequestException("cipher token missing");
-        }
+            Message = $"{verString} is running"
+        }));
     }
+    
 }

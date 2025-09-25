@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Duyao.SmsForward", "Duyao.S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Duyao.TelegramFile", "Duyao.TelegramFile\Duyao.TelegramFile.csproj", "{326CDE47-0B24-42AF-BAF7-6EAE4F307A01}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Duyao.ApiBase", "Duyao.ApiBase\Duyao.ApiBase.csproj", "{D4AC06FD-1536-4E8E-89E1-2DFA621DE796}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{326CDE47-0B24-42AF-BAF7-6EAE4F307A01}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{326CDE47-0B24-42AF-BAF7-6EAE4F307A01}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{326CDE47-0B24-42AF-BAF7-6EAE4F307A01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4AC06FD-1536-4E8E-89E1-2DFA621DE796}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4AC06FD-1536-4E8E-89E1-2DFA621DE796}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4AC06FD-1536-4E8E-89E1-2DFA621DE796}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4AC06FD-1536-4E8E-89E1-2DFA621DE796}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -1,6 +1,7 @@
 // dotnet publish -f net8.0 -r linux-arm64 -p:PublishSingleFile=true -p:PublishSelfContained=false -o u:\publish
 
 using System.Reflection;
+using Duyao.ApiBase;
 using Duyao.SmsForward;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;

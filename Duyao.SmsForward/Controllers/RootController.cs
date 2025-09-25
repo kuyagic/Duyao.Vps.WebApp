@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using Duyao.ApiBase;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -10,7 +11,7 @@ namespace Duyao.SmsForward.Controllers;
 
 [ApiController]
 [Route("")]
-public class RootController : ControllerBase
+public class RootController : CustomBaseController
 {
     private readonly IOptions<AppConfigObject> _config;
     private readonly ILogger<RootController> _logger;
@@ -140,20 +141,9 @@ public class RootController : ControllerBase
     }
 
     [HttpGet]
-    [Route("me")]
-    public async Task<IActionResult> GetMe()
-    {
-        return await Task.Run(() => Ok(_config.Value.Sms.pattern));
-    }
-
-    [HttpGet]
     [Route("version")]
-    public async Task<IActionResult> GetVersion()
+    public Task<IActionResult> DefaultRoot()
     {
-        // 获取当前程序集
-        var assembly = Assembly.GetExecutingAssembly();
-        // 获取版本信息
-        var version = assembly.GetName().Version;
-        return await Task.Run(() => Ok(string.Format(BuildInfo.BuildTime, version)));
+        return GetVersion("SmsForward");
     }
 }

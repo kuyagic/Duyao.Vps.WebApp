@@ -4,8 +4,7 @@
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <SelfContained>false</SelfContained>
-        <PublishAot>false</PublishAot>
+        <OutputType>Library</OutputType>
     </PropertyGroup>
     <PropertyGroup>
         <!-- 固定的主版本和次版本 -->
@@ -20,17 +19,9 @@
         <InformationalVersion>$(VersionMajor).$(VersionMinor).$(VersionBuild).$(VersionRevision)</InformationalVersion>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.12"/>
-        <PackageReference Include="WTelegramClient" Version="4.3.1"/>
+      <Folder Include="Properties\" />
     </ItemGroup>
-
     <ItemGroup>
-        <Compile Remove="Controllers\TelegramFileController.cs"/>
+      <None Remove="Properties\launchSettings.json" />
     </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\Duyao.ApiBase\Duyao.ApiBase.csproj" />
-    </ItemGroup>
-
-
 </Project>
