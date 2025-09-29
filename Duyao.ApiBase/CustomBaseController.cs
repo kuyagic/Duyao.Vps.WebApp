@@ -6,11 +6,11 @@ namespace Duyao.ApiBase;
 
 public class CustomBaseController : ControllerBase
 {
-        
     protected static string ServerPrivateKey => "3064020100301406072a8648ce3d020106092b240303020801010204493047" +
                                                 "0201010414d48da9f2c6d099ca8e7258e467b5bc82af43af5fa12c032a0004" +
                                                 "2763d236cbbf5cc3209ed22aa40a8bf756fd7b3594df6c446ea0ead3dc0a9f" +
                                                 "a788e263c495a1865c";
+
     protected string ServerPublicKey => "3042301406072a8648ce3d020106092b2403030208010102032a00042763d236cbbf5cc32" +
                                         "09ed22aa40a8bf756fd7b3594df6c446ea0ead3dc0a9fa788e263c495a1865c";
 
@@ -44,5 +44,4 @@ public class CustomBaseController : ControllerBase
             Message = $"{verString} is running"
         }));
     }
-    
 }

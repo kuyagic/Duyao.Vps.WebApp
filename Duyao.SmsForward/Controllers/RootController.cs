@@ -27,19 +27,13 @@ public class RootController : CustomBaseController
     [Route("kv")]
     public async Task<IActionResult> ProcessKv([FromBody] JObject obj)
     {
-        if (obj == null)
-        {
-            _logger.LogInformation("obj is <NULL>");
-        }
+        if (obj == null) _logger.LogInformation("obj is <NULL>");
 
         var cfg = _config.Value.Sms;
 
-        var checkKey = (new string[] { "address", "text", "date_sent", "tag" })
+        var checkKey = new string[] { "address", "text", "date_sent", "tag" }
             .Any(p => !obj.ContainsKey(p));
-        if (checkKey)
-        {
-            return await Task.Run(() => BadRequest("key not exists"));
-        }
+        if (checkKey) return await Task.Run(() => BadRequest("key not exists"));
 
         //DateTime.Parse("1970-01-01 0:00:00").AddMilliseconds(1715936332994).ToLocalTime()
         var smsFrom = obj["address"].ToString();
@@ -49,10 +43,7 @@ public class RootController : CustomBaseController
 
         smsText = System.Net.WebUtility.HtmlEncode(smsText);
 
-        if (!long.TryParse(smsDate, out var lDate))
-        {
-            return await Task.Run(() => BadRequest("Date Error"));
-        }
+        if (!long.TryParse(smsDate, out var lDate)) return await Task.Run(() => BadRequest("Date Error"));
 
         var timeZoneInfoUnix = TimeZoneInfo.FindSystemTimeZoneById("Asia/Shanghai");
         var dSmsDate = DateTime.Parse("1970-01-01 0:00:00").AddMilliseconds(lDate).ToLocalTime();
@@ -66,19 +57,15 @@ public class RootController : CustomBaseController
         var hc = new HttpClient();
         foreach (var pattern in cfg.pattern)
         {
-            var m = System.Text.RegularExpressions.Regex.Match(smsText, pattern);
+            var m = Regex.Match(smsText, pattern);
             if (m.Success)
             {
                 _logger.LogInformation("需要转发");
 
-                var mxList = System.Text.RegularExpressions.Regex.Matches(smsText, "\\d{4,6}");
+                var mxList = Regex.Matches(smsText, "\\d{4,6}");
                 foreach (Match mx in mxList)
-                {
                     if (m.Index - 10 <= mx.Index && mx.Index <= m.Index + 10)
-                    {
                         smsText = smsText.Replace(mx.ToString(), $" <code>{mx}</code> ");
-                    }
-                }
 
                 var message = new StringBuilder();
                 message.AppendLine(smsText);
@@ -141,7 +128,7 @@ public class RootController : CustomBaseController
     }
 
     [HttpGet]
-    [Route("version")]
+    [Route("")]
     public Task<IActionResult> DefaultRoot()
     {
         return GetVersion("SmsForward");

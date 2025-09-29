@@ -62,7 +62,7 @@ public static class Utils
 
         return (num1, num2, num3);
     }
-    
+
     public static string Arc4Encode(string text, string key = "secret@null")
     {
         var keyBytes = Encoding.UTF8.GetBytes(key);
@@ -142,10 +142,7 @@ public static class Utils
     public static T SelectConfigValue<T>(T configValue, string envKey, T defaultValue,
         Func<string, T>? convertFunc = null)
     {
-        if (defaultValue == null)
-        {
-            throw new ArgumentNullException(nameof(defaultValue));
-        }
+        if (defaultValue == null) throw new ArgumentNullException(nameof(defaultValue));
 
         var envValue = Environment.GetEnvironmentVariable(envKey);
         if (string.IsNullOrEmpty(envValue))
@@ -156,17 +153,12 @@ public static class Utils
 
         try
         {
-            if (convertFunc != null)
-            {
-                return convertFunc.Invoke(envValue);
-            }
+            if (convertFunc != null) return convertFunc.Invoke(envValue);
 
             var underlyingType = Nullable.GetUnderlyingType(typeof(T));
             if (underlyingType != null)
-            {
                 // 可空类型
                 return (T)Convert.ChangeType(envValue, underlyingType);
-            }
 
             // 非可空类型
             return (T)Convert.ChangeType(envValue, typeof(T));

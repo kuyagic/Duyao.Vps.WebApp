@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Duyao.TelegramFile.BaseItem;
+namespace Duyao.FileLink.BaseItem;
 
 public class PushStreamResult : IActionResult
 {

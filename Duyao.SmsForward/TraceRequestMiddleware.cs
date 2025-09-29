@@ -1,16 +1,16 @@
-﻿
-namespace Duyao.SmsForward;
+﻿namespace Duyao.SmsForward;
 
 public class TraceRequestMiddleware(RequestDelegate next, ILogger<TraceRequestMiddleware> logger)
 {
     public const string REQUEST_ID = "XRequestId";
     public const string HTTP_METHOD = "HttpMethod";
+
     public async Task InvokeAsync(HttpContext context)
     {
         // 生成唯一的请求ID
         var requestId = Guid.NewGuid().ToString();
         var httpMethod = context.Request.Method.ToUpper();
-        
+
         context.Items[REQUEST_ID] = requestId;
         context.Items[HTTP_METHOD] = httpMethod;
 
@@ -18,7 +18,7 @@ public class TraceRequestMiddleware(RequestDelegate next, ILogger<TraceRequestMi
         using (logger.BeginScope(new[]
                {
                    new KeyValuePair<string, object>(REQUEST_ID, requestId),
-                   new KeyValuePair<string, object>(HTTP_METHOD, httpMethod),
+                   new KeyValuePair<string, object>(HTTP_METHOD, httpMethod)
                }))
         {
             context.Response.Headers.Append("x-request-id"

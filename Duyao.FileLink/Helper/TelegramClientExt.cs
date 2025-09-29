@@ -17,7 +17,7 @@ public static class TelegramClientExt
     }
 
     public static async IAsyncEnumerable<byte[]> YieldFileAsync(
-        this WTelegram.Client telegramClient,
+        this Client telegramClient,
         InputDocumentFileLocation? location,
         long fromBytes,
         long untilBytes,
@@ -25,8 +25,8 @@ public static class TelegramClientExt
         int chunkSize,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        
         #region CalculateChunkParameters
+
         untilBytes = Math.Min(untilBytes, fileSize - 1);
         var offset = fromBytes - fromBytes % chunkSize;
         var firstPartCut = fromBytes - offset;
@@ -34,8 +34,9 @@ public static class TelegramClientExt
         // var reqLength = untilBytes - fromBytes + 1;
         var partCount = (long)Math.Ceiling((double)untilBytes / chunkSize) -
                         (long)Math.Floor((double)offset / chunkSize);
-        #endregion 
-        
+
+        #endregion
+
         var currentPart = 1;
         var local = telegramClient;
         while (currentPart <= partCount && !cancellationToken.IsCancellationRequested) // Check for cancellation
@@ -89,10 +90,7 @@ public static class TelegramClientExt
                 break; // Or handle differently
             }
 
-            if (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
+            if (cancellationToken.IsCancellationRequested) break;
         }
     }
 
@@ -117,16 +115,16 @@ public static class TelegramClientExt
         , long chatId
         , int chatMessageId
         , bool isFromChannel
-        )
+    )
     {
         var ret = new TelegramGetMessageMediaResult();
         Messages_MessagesBase? msg;
-        
+
         if (isFromChannel)
         {
             var inputChannel = new InputChannel(chatId, 0);
             var channels = await telegramClient.Channels_GetChannels(new InputChannelBase[] { inputChannel });
-                
+
             if (channels.chats.Count > 0 && channels.chats.First().Value is Channel channel)
             {
                 msg = await telegramClient.GetMessages(channel
@@ -156,6 +154,7 @@ public static class TelegramClientExt
                 ret.Message = "Message does not contain media";
                 return ret;
             }
+
             if (m.media is MessageMediaDocument mediaDocument)
             {
                 var doc = mediaDocument.document as Document;
@@ -166,6 +165,7 @@ public static class TelegramClientExt
                     return ret;
                 }
             }
+
             if (m.media is MessageMediaPhoto mediaPhoto)
             {
                 var photo = mediaPhoto.photo as Photo;
@@ -176,6 +176,7 @@ public static class TelegramClientExt
                     return ret;
                 }
             }
+
             ret.Success = false;
             ret.Message = "Unsupported file type for download";
             return ret;

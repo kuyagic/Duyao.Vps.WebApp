@@ -19,7 +19,7 @@ public class TelegramGetMessageMediaResult
 
     public override string ToString()
     {
-        return this.Type switch
+        return Type switch
         {
             TelegramMessageMediaType.Document => $"{Type.ToString()}=>{DocumentInfo?.Filename}",
             TelegramMessageMediaType.Photo => $"{Type.ToString()}=>{PhotoInfo?.ID}",

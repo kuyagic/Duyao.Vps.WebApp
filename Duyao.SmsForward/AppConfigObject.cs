@@ -2,7 +2,6 @@
 
 namespace Duyao.SmsForward;
 
-
 public class AppConfigObject
 {
     [JsonProperty("Sms")] public SmsConfig Sms { get; set; }

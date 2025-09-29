@@ -1,12 +1,12 @@
 ﻿using Duyao.ApiBase;
-using Duyao.TelegramFile.BaseItem;
+using Duyao.FileLink.BaseItem;
 using Duyao.TelegramFile.Entity;
 using Duyao.TelegramFile.Helper;
 using Microsoft.AspNetCore.Mvc;
 using TL;
 using WTelegram;
 
-namespace Duyao.TelegramFile.Controllers;
+namespace Duyao.FileLink.Controllers;
 
 [ApiController]
 [Route("[controller]")]
@@ -114,10 +114,8 @@ public class TelegramController : CustomBaseController
         if (fileName.Equals("sticker.webm", StringComparison.InvariantCultureIgnoreCase)
             && mimeType != null
             && mimeType.Equals("video/webm", StringComparison.InvariantCultureIgnoreCase))
-        {
             //tg 贴图 不完美验证，修改文件名。
             fileName = $"sticker_{fileLocation?.id}.webm.mp4";
-        }
 
         // 2. Handle Range Request
         long fromBytes = 0;

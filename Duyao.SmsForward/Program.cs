@@ -8,13 +8,13 @@ using Serilog.Sinks.SystemConsole.Themes;
 
 try
 {
+    // 获取当前程序集
+    var assembly = Assembly.GetExecutingAssembly();
+
     #region basePath Check
 
     var basePath = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
-    if (string.IsNullOrEmpty(basePath))
-    {
-        basePath = AppContext.BaseDirectory;
-    }
+    if (string.IsNullOrEmpty(basePath)) basePath = AppContext.BaseDirectory;
 
     Log.Information($"base-path:{basePath}");
     var options = new WebApplicationOptions
@@ -30,7 +30,7 @@ try
 
     #region Init SeriLog
 
-    var logFilePath = Path.Join(basePath, "logs", "duyao.netcore.web-.txt");
+    var logFilePath = Path.Join(basePath, "logs", $"{assembly.GetName().Name?.ToLower() ?? "app"}-.txt");
     var logDirectory = Path.GetDirectoryName(logFilePath);
     if (!Directory.Exists(logDirectory))
     {
@@ -39,8 +39,7 @@ try
     }
 
     var reqIdName = TraceRequestMiddleware.REQUEST_ID;
-    var outputTemplate = "[{" + reqIdName +
-                         "}][{HttpMethod}][{ActionName}][{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {Message:l}{NewLine}{Exception}";
+    var outputTemplate = "[{" + reqIdName + "}][{HttpMethod}][{ActionName}][{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {Message:l}{NewLine}{Exception}";
     var logCfg = new LoggerConfiguration().WriteTo
             .Console(
                 theme: AnsiConsoleTheme.Sixteen
@@ -61,17 +60,12 @@ try
 
     #endregion
 
-    // 获取当前程序集
-    var assembly = Assembly.GetExecutingAssembly();
     // 获取版本信息
     var version = assembly.GetName().Version;
-    var verString = string.Format(BuildInfo.BuildTime, version);
+    var verString = string.Format(BuildInfo.BuildTime, assembly.GetName().Name, version);
     Log.Information("Starting APP");
     Log.Information($"Version : {verString}");
-    if (OperatingSystem.IsWindows())
-    {
-        Console.Title = $"{Assembly.GetEntryAssembly()?.FullName} - {verString}";
-    }
+    if (OperatingSystem.IsWindows()) Console.Title = $"{Assembly.GetEntryAssembly()?.FullName} - {verString}";
 
     builder.Logging.ClearProviders().AddSerilog();
 
@@ -81,7 +75,7 @@ try
         .AddNewtonsoftJson();
     ;
     var config = builder.Configuration.SetBasePath(basePath)
-        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+        .AddJsonFile("appsettings.json", false, true)
         .Build();
     builder.Services.Configure<AppConfigObject>(config);
 

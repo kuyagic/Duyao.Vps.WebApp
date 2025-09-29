@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Duyao.SmsForward", "Duyao.SmsForward\Duyao.SmsForward.csproj", "{65B87D09-320F-4BD0-A4C1-B9172AF74E79}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Duyao.TelegramFile", "Duyao.TelegramFile\Duyao.TelegramFile.csproj", "{326CDE47-0B24-42AF-BAF7-6EAE4F307A01}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Duyao.FileLink", "Duyao.FileLink\Duyao.FileLink.csproj", "{326CDE47-0B24-42AF-BAF7-6EAE4F307A01}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Duyao.ApiBase", "Duyao.ApiBase\Duyao.ApiBase.csproj", "{D4AC06FD-1536-4E8E-89E1-2DFA621DE796}"
 EndProject

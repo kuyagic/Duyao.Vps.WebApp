@@ -1,20 +1,17 @@
-﻿using System.Text;
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 using System.Web;
 using Duyao.ApiBase;
-using Duyao.TelegramFile.BaseItem;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Duyao.TelegramFile.Controllers;
+namespace Duyao.FileLink.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class DirectController : CustomBaseController
+public partial class DirectController : CustomBaseController
 {
     private readonly ILogger<DirectController> _logger;
 
-    private static string ydxApiTemplate =
-        "https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=https://disk.yandex.ru";
+    private static string ydxApiTemplate = "https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=https://disk.yandex.ru";
 
     public DirectController(
         ILogger<DirectController> logger
@@ -23,11 +20,7 @@ public class DirectController : CustomBaseController
         _logger = logger;
     }
 
-    [HttpGet("")]
-    public Task<IActionResult> DefaultRoot()
-    {
-        return GetVersion("DirectLink");
-    }
+    #region YandexDisk
 
     [HttpGet("y/d/{hash}")]
     [HttpHead("y/d/{hash}")]
@@ -37,7 +30,7 @@ public class DirectController : CustomBaseController
         var hc = new HttpClient();
         var url = $"{ydxApiTemplate}/d/{hash}";
         var json = await hc.GetFromJsonAsync<JsonObject>(url
-            , cancellationToken: cancellationToken
+            , cancellationToken
         );
         if (json != null && json.ContainsKey("href"))
         {
@@ -56,8 +49,8 @@ public class DirectController : CustomBaseController
                 // 只对filename参数进行编码
                 if (queryString["filename"] != null)
                 {
-                    string originalFilename = queryString["filename"];
-                    string encodedFilename = originalFilename;
+                    var originalFilename = queryString["filename"];
+                    var encodedFilename = originalFilename;
                     queryString["filename"] = encodedFilename;
                 }
 
@@ -67,7 +60,7 @@ public class DirectController : CustomBaseController
                     Query = queryString.ToString()
                 };
 
-                string safeUrl = uriBuilder.ToString();
+                var safeUrl = uriBuilder.ToString();
                 return Redirect(safeUrl);
             }
         }
@@ -83,7 +76,7 @@ public class DirectController : CustomBaseController
         var hc = new HttpClient();
         var url = $"{ydxApiTemplate}/i/{hash}";
         var json = await hc.GetFromJsonAsync<JsonObject>(url
-            , cancellationToken: cancellationToken
+            , cancellationToken
         );
         if (json != null && json.ContainsKey("href"))
         {
@@ -103,8 +96,8 @@ public class DirectController : CustomBaseController
                 // 只对filename参数进行编码
                 if (queryString["filename"] != null)
                 {
-                    string originalFilename = queryString["filename"];
-                    string encodedFilename = originalFilename;
+                    var originalFilename = queryString["filename"];
+                    var encodedFilename = originalFilename;
                     queryString["filename"] = encodedFilename;
                 }
 
@@ -114,7 +107,7 @@ public class DirectController : CustomBaseController
                     Query = queryString.ToString()
                 };
 
-                string safeUrl = uriBuilder.ToString();
+                var safeUrl = uriBuilder.ToString();
                 return Redirect(safeUrl);
             }
         }
@@ -122,8 +115,10 @@ public class DirectController : CustomBaseController
         return NotFound();
     }
 
-    [HttpGet("lifebox/{hash}")]
-    [HttpHead("lifebox/{hash}")]
+    #endregion
+
+    #region Lifebox
+
     [HttpGet("box/{hash}")]
     [HttpHead("box/{hash}")]
     public async Task<IActionResult> DownloadMylifeboxFirstShareFile(string hash
@@ -133,7 +128,7 @@ public class DirectController : CustomBaseController
         var lifeboxApiTemplate =
             $"https://mylifebox.com/api/share/public/list?publicToken={hash}&language=tr&sortBy=name&sortOrder=ASC&page=0&size=1";
         var json = await hc.GetFromJsonAsync<List<JsonObject>>(lifeboxApiTemplate
-            , cancellationToken: cancellationToken
+            , cancellationToken
         );
         if (json != null && json.Any() && json.First().ContainsKey("tempDownloadURL"))
         {
@@ -145,4 +140,6 @@ public class DirectController : CustomBaseController
 
         return NotFound();
     }
+
+    #endregion
 }

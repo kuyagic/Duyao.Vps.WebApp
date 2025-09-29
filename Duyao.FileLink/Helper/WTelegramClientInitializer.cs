@@ -6,11 +6,11 @@ namespace Duyao.TelegramFile.Helper;
 
 public class WTelegramClientInitializer
 {
-    private readonly ILogger<WTelegram.Client> _logger;
+    private readonly ILogger<Client> _logger;
     private readonly IConfiguration _configuration;
     private readonly IServiceProvider _provider;
 
-    public WTelegramClientInitializer(ILogger<WTelegram.Client> logger
+    public WTelegramClientInitializer(ILogger<Client> logger
         , IConfiguration opt
         , IServiceProvider provider
     )
@@ -35,22 +35,17 @@ public class WTelegramClientInitializer
             , s => s.Split(',').Select(long.Parse).ToArray()
         );
         if (string.IsNullOrEmpty(apiHash) || string.IsNullOrEmpty(botToken) || apiId == 0)
-        {
             throw new InvalidOperationException("环境变量或者配置文件没找到正确配置");
-        }
 
         var client = new Client(apiId, apiHash);
-        if (!string.IsNullOrEmpty(mtProxyUrl))
-        {
-            client.MTProxyUrl = mtProxyUrl;
-        }
+        if (!string.IsNullOrEmpty(mtProxyUrl)) client.MTProxyUrl = mtProxyUrl;
         var user = client.LoginBotIfNeeded(botToken);
         _logger.LogInformation($"ApiHostName - {apiHostName}");
         _logger.LogInformation($"BotInfo - {user.Result.first_name},{user.Result.last_name},@{user.Result.username}");
         var allowUserStr = string.Join(",", allowUser?.Select(a => a.ToString()).ToArray() ?? []);
         _logger.LogInformation($"allowUserStr - {allowUserStr}");
         _logger.LogInformation($"botResponse - {botResponse}");
-        
+
         async void KeepAliveAsync()
         {
             while (true)
@@ -69,12 +64,11 @@ public class WTelegramClientInitializer
                 }
             }
         }
-        
+
         async Task OnUpdate(Update upd)
         {
             _logger.LogInformation($"OnUpdate triggered,{upd.GetType().FullName}");
             if (upd is UpdateNewMessage msg)
-            {
                 try
                 {
                     if (msg.message.Peer is PeerUser pu
@@ -125,10 +119,7 @@ public class WTelegramClientInitializer
                             replyText = $"{fileName}\r\n{replyText}";
                         }
 
-                        if (botResponse == 0)
-                        {
-                            return;
-                        }
+                        if (botResponse == 0) return;
 
                         try
                         {
@@ -160,10 +151,7 @@ public class WTelegramClientInitializer
                     {
                         #region Startup Message
 
-                        if (botResponse == 0)
-                        {
-                            return;
-                        }
+                        if (botResponse == 0) return;
 
                         try
                         {
@@ -195,12 +183,10 @@ public class WTelegramClientInitializer
                 {
                     _logger.LogError(exp.Message);
                 }
-            }
         }
 
         var mgnr = client.WithUpdateManager(OnUpdate /*, "Updates.state"*/);
         KeepAliveAsync();
         return client;
     }
-    
 }
