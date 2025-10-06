@@ -38,8 +38,7 @@ try
         Log.Information($"Created log directory: {logDirectory}");
     }
 
-    var reqIdName = TraceRequestMiddleware.REQUEST_ID;
-    var outputTemplate = "[{" + reqIdName + "}][{HttpMethod}][{ActionName}][{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {Message:l}{NewLine}{Exception}";
+    var outputTemplate = "[{XRequestId}][{HttpMethod}][{ActionName}][{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {Message:l}{NewLine}{Exception}";
     var logCfg = new LoggerConfiguration().WriteTo
             .Console(
                 theme: AnsiConsoleTheme.Sixteen
@@ -52,6 +51,7 @@ try
             )
             .Enrich.FromLogContext()
             .ReadFrom.Configuration(builder.Configuration)
+            
         ;
 
     Log.Logger = logCfg
@@ -75,7 +75,7 @@ try
         .AddNewtonsoftJson();
     ;
     var config = builder.Configuration.SetBasePath(basePath)
-        .AddJsonFile("appsettings.json", false, true)
+        .AddJsonFile("appsettings.json", true, true)
         .Build();
     builder.Services.Configure<AppConfigObject>(config);
 

@@ -1,6 +1,9 @@
-@Duyao.SmsForward_HostAddress = http://localhost:5044
 
-GET {{Duyao.SmsForward_HostAddress}}/weatherforecast/
+POST https://sms.duyao.de/fwd/test
 Accept: application/json
+
+{
+"address":"124", "text":"test44", "date_sent":123213123, "tag":"tes1"
+}
 
 ###
