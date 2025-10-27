@@ -37,11 +37,15 @@ public class RootController : CustomBaseController
 
         //DateTime.Parse("1970-01-01 0:00:00").AddMilliseconds(1715936332994).ToLocalTime()
         var smsFrom = obj["address"].ToString();
-        var smsText = obj["text"].ToString();
+        var smsText = obj["text"]?.ToString();
         var smsDate = obj["date_sent"].ToString();
         var smsTag = (obj["tag"] ?? "").ToString();
 
         smsText = System.Net.WebUtility.HtmlEncode(smsText);
+
+        //提取发件人抬头标
+        Match match = Regex.Match(smsText ?? string.Empty, @"^【([^】]+)】");
+        var smsTextHeader = match.Success ? match.Groups[1].Value : string.Empty;
 
         if (!long.TryParse(smsDate, out var lDate)) return await Task.Run(() => BadRequest("Date Error"));
 
@@ -73,6 +77,11 @@ public class RootController : CustomBaseController
                 message.AppendLine($"Device: <code>{smsTag}</code>");
                 message.AppendLine($"DateTime <code>{retSmsDateString}</code>");
                 message.AppendLine($"From <code>{smsFrom}</code>");
+                if (!string.IsNullOrWhiteSpace(smsTextHeader))
+                {
+                    message.AppendLine($"#{smsTextHeader}");
+                }
+
                 var data = new
                 {
                     chat_id = fwdObj.chat_id,
@@ -96,6 +105,11 @@ public class RootController : CustomBaseController
         catchAllMsg.AppendLine($"Device: <code>{smsTag}</code>");
         catchAllMsg.AppendLine($"DateTime <code>{retSmsDateString}</code>");
         catchAllMsg.AppendLine($"From <code>{smsFrom}</code>");
+        if (!string.IsNullOrWhiteSpace(smsTextHeader))
+        {
+            catchAllMsg.AppendLine($"#{smsTextHeader}");
+        }
+
         var catchAllData = new
         {
             chat_id = fwdObj.catch_all,
