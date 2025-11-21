@@ -141,10 +141,35 @@ public class RootController : CustomBaseController
         return await ProcessKv(obj);
     }
 
+    [HttpPost]
+    [Route("filterbox/{device}")]
+    public async Task<IActionResult> FilterBoxWebhook(string device, [FromBody] JObject? obj)
+    {
+        if (obj == null)
+        {
+            _logger.LogInformation("obj is <NULL>");
+            obj = new JObject();
+        }
+        var nObject = new JObject();
+        nObject["tag"] = device;
+        nObject["address"] = obj["android.title"];
+        nObject["text"] = obj["android.text"];
+        nObject["date_sent"] = obj["filterbox.field.WHEN"];
+        /*
+        var smsFrom = obj["address"].ToString();
+        var smsText = obj["text"]?.ToString();
+        var smsDate = obj["date_sent"].ToString();
+        var smsTag = (obj["tag"] ?? "").ToString();*/
+        
+        return await ProcessKv(nObject);
+    }
+    
     [HttpGet]
     [Route("")]
     public Task<IActionResult> DefaultRoot()
     {
         return GetVersion("SmsForward");
     }
+    
+    
 }
