@@ -20,6 +20,7 @@
         <InformationalVersion>$(VersionMajor).$(VersionMinor).$(VersionBuild).$(VersionRevision)</InformationalVersion>
     </PropertyGroup>
     <ItemGroup>
+        <PackageReference Include="AWSSDK.S3" Version="4.0.18.7" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.12"/>
         <PackageReference Include="WTelegramClient" Version="4.3.1"/>
     </ItemGroup>

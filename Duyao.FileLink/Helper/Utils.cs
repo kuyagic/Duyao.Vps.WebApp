@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Duyao.TelegramFile.Helper;
+namespace Duyao.FileLink.Helper;
 
 public static class Utils
 {
