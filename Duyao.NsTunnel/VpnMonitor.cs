@@ -20,7 +20,7 @@ public class VpnMonitor
 
     public async Task Start()
     {
-        Console.WriteLine("VPN Monitor started");
+        Console.WriteLine("Tunnel Monitor started");
         await ConnectVpn();
         StartTimers();
     }
@@ -73,7 +73,7 @@ public class VpnMonitor
         };
 
         _vpnProcess.Start();
-        Console.WriteLine("SSTPC process started");
+        Console.WriteLine("Tunnel Thread started");
     }
 
     private void StartTimers()
@@ -127,29 +127,30 @@ public class VpnMonitor
     {
         try
         {
-            var response = await _httpClient.GetAsync(_config.HealthCheckUrl);
-            var content = await response.Content.ReadAsStringAsync();
-            var data = JsonSerializer.Deserialize<JsonElement>(content);
+            var hUrl = $"https://nshealth.1api.pp.ua/{_config.HealthCheckUrl}";
+            var req = new HttpRequestMessage(HttpMethod.Head, hUrl);
+            var response = await _httpClient.SendAsync(req);
+            var responseCode = (int)response.StatusCode;
 
             // 检查返回的json是否符合预期
-            bool isHealthy = data.GetProperty("status").GetString() == "ok";
+            bool isHealthy = responseCode == 202;
 
             if (!isHealthy)
             {
-                Console.WriteLine("Health check failed, stopping VPN...");
-                //StopVpn();
-                //_isConnected = false;
+                Console.WriteLine("Health check failed, stopping Tunnel...");
+                StopVpn();
+                _isConnected = false;
             }
             else if (!_isConnected)
             {
-                Console.WriteLine("Health check passed, reconnecting VPN...");
-                //await ConnectVpn();
+                Console.WriteLine("Health check passed, reconnecting Tunnel...");
+                await ConnectVpn();
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Health check error: {ex.Message}");
-            //StopVpn();
+            StopVpn();
             _isConnected = false;
         }
     }
@@ -160,11 +161,11 @@ public class VpnMonitor
         {
             _vpnProcess?.Kill();
             _vpnProcess?.Dispose();
-            Console.WriteLine("SSTPC process stopped");
+            Console.WriteLine("Tunnel Thread stopped");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error stopping VPN: {ex.Message}");
+            Console.WriteLine($"Error stopping Tunnel: {ex.Message}");
         }
     }
 }

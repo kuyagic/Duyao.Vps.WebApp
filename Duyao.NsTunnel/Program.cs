@@ -8,7 +8,7 @@ using Duyao.NsTunnel;
 var config = new AppConfig
 {
     ApiUrl = "https://your-api.com/endpoint",
-    HealthCheckUrl = "https://your-health-check.com/status",
+    HealthCheckUrl = "guid123",
     VpnUser = "vpn",
     VpnPassword = "vpn",
     UnitConfig = "555"
