@@ -21,7 +21,7 @@ public class VpnMonitor
     public async Task Start()
     {
         Console.WriteLine("Tunnel Monitor started");
-        await ConnectVpn();
+        //await ConnectVpn();
         StartTimers();
     }
 
@@ -46,7 +46,7 @@ public class VpnMonitor
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error connecting VPN: {ex.Message}");
+            Console.WriteLine($"Error connecting Tunnel: {ex.Message}");
             _isConnected = false;
         }
     }
@@ -54,9 +54,14 @@ public class VpnMonitor
     private async Task ExecuteSstpc(string host, int port)
     {
         // 停止已有的进程
-        _vpnProcess?.Kill();
-        _vpnProcess?.Dispose();
-
+        try
+        {
+            _vpnProcess?.Kill();
+            _vpnProcess?.Dispose();
+        }
+        catch
+        {
+        }
         var args = $"--log-level 1 --cert-warn --user {_config.VpnUser} --password {_config.VpnPassword} " +
                    $"{host}:{port} require-mschap-v2 nodefaultroute noauth unit {_config.UnitConfig}";
 
@@ -80,11 +85,14 @@ public class VpnMonitor
     {
         // 第3步：每1分钟检查连接
         _connectionCheckTimer =
-            new Timer(async _ => await CheckConnection(), null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
+            new Timer(async _ => await CheckConnection(), null
+                , TimeSpan.FromSeconds(2)
+                , TimeSpan.FromMinutes(1));
 
         // 第4步：每1分钟检查健康状态
-        _healthCheckTimer = new Timer(async _ => await CheckHealth(), null, TimeSpan.FromSeconds(5),
-            TimeSpan.FromMinutes(1));
+        _healthCheckTimer = new Timer(async _ => await CheckHealth(), null
+            , TimeSpan.FromSeconds(15),
+            TimeSpan.FromSeconds(15));
     }
 
     private async Task<string> GetWithInterface(string url, string interfaceName)
