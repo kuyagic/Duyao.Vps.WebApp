@@ -42,6 +42,9 @@ public class VpnMonitor
                 }
             };
             process.Start();
+            process.WaitForExit();
+            var output = process.StandardError.ReadToEndAsync().Result;
+            Console.WriteLine(output);
             return Task.FromResult(process.ExitCode == 0);
         }
         catch
