@@ -25,13 +25,24 @@ public class VpnMonitor
         //await ConnectVpn();
         StartTimers();
     }
-    private Task<bool> IsTcpPortOpen(string host, string port, int timeoutMs = 2000)
+    private Task<bool> IsTcpPortOpen(string host, string port)
     {
         try
         {
-            using var client = new System.Net.Sockets.TcpClient();
-            client.ConnectAsync(host, int.Parse(port)).Wait(timeoutMs);
-            return Task.FromResult(client.Connected);
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    //ping -I $INTERFACE -c 3 -W 5 $TARGET_IP
+                    FileName = "nc",
+                    Arguments = $"-z -w 2 {host} {port}",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                }
+            };
+            process.Start();
+            return Task.FromResult(process.ExitCode == 0);
         }
         catch
         {
@@ -153,7 +164,7 @@ public class VpnMonitor
             {
                 //ping -I $INTERFACE -c 3 -W 5 $TARGET_IP
                 FileName = "apt",
-                Arguments = "install --no-install-recommends -y sstp-client",
+                Arguments = "install --no-install-recommends -y ncat sstp-client",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
