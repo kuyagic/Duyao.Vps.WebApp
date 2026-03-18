@@ -30,6 +30,7 @@ public class S3Controller : CustomBaseController
     }
 
     [HttpGet("s3/{**path}")]
+    [HttpHead("s3/{**path}")]
     public Task<IActionResult> DefaultRoot(string path)
     {
         var s3Config = _configuration.GetSection("S3").Get<S3Config>();
