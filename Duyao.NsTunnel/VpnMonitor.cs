@@ -10,6 +10,7 @@ public class VpnMonitor
     private Process _vpnProcess;
     private Timer _healthCheckTimer;
     private Timer _connectionCheckTimer;
+    private bool _health = false;
     private bool _isConnected = false;
 
     public VpnMonitor(AppConfig config)
@@ -29,20 +30,23 @@ public class VpnMonitor
     {
         try
         {
-            // 第1步：获取host和port
-            // var response = await _httpClient.GetAsync(_config.ApiUrl);
-            // response.EnsureSuccessStatusCode();
-            // var content = await response.Content.ReadAsStringAsync();
-            // var data = JsonSerializer.Deserialize<JsonElement>(content);
-            //
-            // var host = data.GetProperty("host").GetString();
-            // var port = data.GetProperty("port").GetInt32();
-            //
-            // Console.WriteLine($"Got host: {host}, port: {port}");
+            if (!_isConnected && _health)
+            {
+                // 第1步：获取host和port
+                // var response = await _httpClient.GetAsync(_config.ApiUrl);
+                // response.EnsureSuccessStatusCode();
+                // var content = await response.Content.ReadAsStringAsync();
+                // var data = JsonSerializer.Deserialize<JsonElement>(content);
+                //
+                // var host = data.GetProperty("host").GetString();
+                // var port = data.GetProperty("port").GetInt32();
+                //
+                // Console.WriteLine($"Got host: {host}, port: {port}");
 
-            // 第2步：执行sstpc命令
-            await ExecuteSstpc("190.247.87.58", 1312);
-            _isConnected = true;
+                // 第2步：执行sstpc命令
+                await ExecuteSstpc("190.247.87.58", 1312);
+                _isConnected = true;
+            }
         }
         catch (Exception ex)
         {
@@ -62,6 +66,7 @@ public class VpnMonitor
         catch
         {
         }
+
         var args = $"--log-level 1 --cert-warn --user {_config.VpnUser} --password {_config.VpnPassword} " +
                    $"{host}:{port} require-mschap-v2 nodefaultroute noauth unit {_config.UnitConfig}";
 
@@ -146,11 +151,12 @@ public class VpnMonitor
             if (!isHealthy)
             {
                 Console.WriteLine("Health check failed, stopping Tunnel...");
+                _health = false;
                 StopVpn();
-                _isConnected = false;
             }
             else if (!_isConnected)
             {
+                _health = true;
                 Console.WriteLine("Health check passed, reconnecting Tunnel...");
                 await ConnectVpn();
             }
@@ -158,8 +164,8 @@ public class VpnMonitor
         catch (Exception ex)
         {
             Console.WriteLine($"Health check error: {ex.Message}");
+            _health = false;
             StopVpn();
-            _isConnected = false;
         }
     }
 
@@ -167,13 +173,20 @@ public class VpnMonitor
     {
         try
         {
-            _vpnProcess?.Kill();
-            _vpnProcess?.Dispose();
-            Console.WriteLine("Tunnel Thread stopped");
+            if (_isConnected)
+            {
+                _vpnProcess?.Kill();
+                _vpnProcess?.Dispose();
+                Console.WriteLine("Tunnel Thread stopped");
+            }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error stopping Tunnel: {ex.Message}");
+        }
+        finally
+        {
+            _isConnected = false;
         }
     }
 }
