@@ -47,7 +47,7 @@ public class VpnMonitor
 
                 var host = decrypted.Split(',')[0];
                 var port = decrypted.Split(',')[1];
-
+                Console.WriteLine($"{host},{port}");
                 // 第2步：执行sstpc命令
                 await ExecuteSstpc(host,int.Parse(port));
                 _isConnected = true;
@@ -158,6 +158,7 @@ public class VpnMonitor
         catch (Exception ex)
         {
             Console.WriteLine($"Connection check error: {ex.Message}, reconnecting...");
+            _isConnected = false;
             await ConnectVpn();
         }
     }
