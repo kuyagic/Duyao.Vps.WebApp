@@ -5,7 +5,6 @@ namespace Duyao.NsTunnel;
 
 public class VpnMonitor
 {
-    
     private readonly AppConfig _config;
     private readonly HttpClient _httpClient;
     private Process _vpnProcess;
@@ -80,20 +79,42 @@ public class VpnMonitor
     private void StartTimers()
     {
         // 第3步：每1分钟检查连接
-        _connectionCheckTimer = new Timer(async _ => await CheckConnection(), null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
+        _connectionCheckTimer =
+            new Timer(async _ => await CheckConnection(), null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
 
         // 第4步：每1分钟检查健康状态
-        _healthCheckTimer = new Timer(async _ => await CheckHealth(), null, TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(1));
+        _healthCheckTimer = new Timer(async _ => await CheckHealth(), null, TimeSpan.FromSeconds(5),
+            TimeSpan.FromMinutes(1));
+    }
+
+    private async Task<string> GetWithInterface(string url, string interfaceName)
+    {
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                //ping -I $INTERFACE -c 3 -W 5 $TARGET_IP
+                FileName = "ping",
+                Arguments = $"-I {interfaceName} -c 3 -W 5 {url}",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            }
+        };
+        process.Start();
+        var output = await process.StandardOutput.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        if (process.ExitCode != 0)
+            throw new Exception($"ping failed with exit code {process.ExitCode}");
+        return output;
     }
 
     private async Task CheckConnection()
     {
         try
         {
-            using var client = new HttpClientViaInterface($"ppp{_config.UnitConfig}");
-            // 使用指定网络接口访问地址
-            var result = await client.GetAsync("http://8.8.8.8");
-            
+            var result = await GetWithInterface("9.9.9.11"
+                , $"ppp{_config.UnitConfig}");
         }
         catch (Exception ex)
         {
