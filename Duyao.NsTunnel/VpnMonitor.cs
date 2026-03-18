@@ -25,7 +25,19 @@ public class VpnMonitor
         //await ConnectVpn();
         StartTimers();
     }
-
+    private Task<bool> IsTcpPortOpen(string host, string port, int timeoutMs = 2000)
+    {
+        try
+        {
+            using var client = new System.Net.Sockets.TcpClient();
+            client.ConnectAsync(host, int.Parse(port)).Wait(timeoutMs);
+            return Task.FromResult(client.Connected);
+        }
+        catch
+        {
+            return Task.FromResult(false);
+        }
+    }
     private async Task ConnectVpn()
     {
         try
@@ -42,12 +54,17 @@ public class VpnMonitor
                 var decrypted = CryptoHelper.Decrypt(data.GetProperty("data").GetString());
                 if (decrypted == null)
                 {
-                    throw new Exception("Data is null");
+                    throw new Exception("Data is Invalid");
                 }
 
                 var host = decrypted.Split(',')[0];
                 var port = decrypted.Split(',')[1];
-                Console.WriteLine($"{host},{port}");
+                var checkConnect = await IsTcpPortOpen(host, port);
+                if (!checkConnect)
+                {
+                    Console.WriteLine("Try another connection");
+                    await ConnectVpn();
+                }
                 // 第2步：执行sstpc命令
                 await ExecuteSstpc(host,int.Parse(port));
                 _isConnected = true;
