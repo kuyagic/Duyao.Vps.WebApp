@@ -32,19 +32,24 @@ public class VpnMonitor
         {
             if (!_isConnected && _health)
             {
+                Console.WriteLine("Starting connecting Tunnel");
+                
                 // 第1步：获取host和port
-                // var response = await _httpClient.GetAsync(_config.ApiUrl);
-                // response.EnsureSuccessStatusCode();
-                // var content = await response.Content.ReadAsStringAsync();
-                // var data = JsonSerializer.Deserialize<JsonElement>(content);
-                //
-                // var host = data.GetProperty("host").GetString();
-                // var port = data.GetProperty("port").GetInt32();
-                //
-                // Console.WriteLine($"Got host: {host}, port: {port}");
+                var response = await _httpClient.GetAsync($"https://nst-api.1api.pp.ua/e/{_config.ApiData}");
+                response.EnsureSuccessStatusCode();
+                var content = await response.Content.ReadAsStringAsync();
+                var data = JsonSerializer.Deserialize<JsonElement>(content);
+                var decrypted = CryptoHelper.Decrypt(data.GetProperty("data").GetString());
+                if (decrypted == null)
+                {
+                    throw new Exception("Data is null");
+                }
+
+                var host = decrypted.Split(',')[0];
+                var port = decrypted.Split(',')[1];
 
                 // 第2步：执行sstpc命令
-                await ExecuteSstpc("190.247.87.58", 1312);
+                await ExecuteSstpc(host,int.Parse(port));
                 _isConnected = true;
             }
         }
@@ -121,6 +126,27 @@ public class VpnMonitor
             throw new Exception($"ping failed with exit code {process.ExitCode}");
         return output;
     }
+    
+    
+    public async Task EnsureEnv()
+    {
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                //ping -I $INTERFACE -c 3 -W 5 $TARGET_IP
+                FileName = "apt",
+                Arguments = "install --no-install-recommends -y sstp-client",
+                UseShellExecute = false,
+                RedirectStandardOutput = false,
+                RedirectStandardError = false
+            }
+        };
+        process.Start();
+        await process.WaitForExitAsync();
+        if (process.ExitCode != 0)
+            throw new Exception($"system env init failed with exit code {process.ExitCode}");
+    }
 
     private async Task CheckConnection()
     {
@@ -140,13 +166,8 @@ public class VpnMonitor
     {
         try
         {
-            var hUrl = $"https://nshealth.1api.pp.ua/{_config.HealthCheckUrl}";
-            var req = new HttpRequestMessage(HttpMethod.Head, hUrl);
-            var response = await _httpClient.SendAsync(req);
-            var responseCode = (int)response.StatusCode;
-
             // 检查返回的json是否符合预期
-            bool isHealthy = responseCode == 202;
+            bool isHealthy = await DoCheck();
 
             if (!isHealthy)
             {
@@ -167,6 +188,18 @@ public class VpnMonitor
             _health = false;
             StopVpn();
         }
+    }
+
+    public async Task<bool> DoCheck()
+    {
+        var hUrl = $"https://nshealth.1api.pp.ua/{_config.HealthCheckUrl}";
+        var req = new HttpRequestMessage(HttpMethod.Head, hUrl);
+        var response = await _httpClient.SendAsync(req);
+        var responseCode = (int)response.StatusCode;
+
+        // 检查返回的json是否符合预期
+        bool isHealthy = responseCode == 202;
+        return isHealthy;
     }
 
     private void StopVpn()
