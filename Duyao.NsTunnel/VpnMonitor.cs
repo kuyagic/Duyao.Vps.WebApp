@@ -138,8 +138,8 @@ public class VpnMonitor
                 FileName = "apt",
                 Arguments = "install --no-install-recommends -y sstp-client",
                 UseShellExecute = false,
-                RedirectStandardOutput = false,
-                RedirectStandardError = false
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
             }
         };
         process.Start();
