@@ -8,7 +8,6 @@ var config = new AppConfig
 {
     ApiUrl = "https://your-api.com/endpoint",
     HealthCheckUrl = "https://your-health-check.com/status",
-    NetworkInterface = "ppp555", // 指定网络接口
     VpnUser = "vpn",
     VpnPassword = "vpn",
     UnitConfig = "555"

@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
 
@@ -45,18 +46,25 @@ public class HttpClientViaInterface:IDisposable
     }
     private IPAddress GetInterfaceIpAddress(string interfaceName)
     {
-        var interfaces = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces();
-        var targetInterface = interfaces.FirstOrDefault(i => i.Name == interfaceName);
-        
-        if (targetInterface == null)
-            throw new Exception($"Network interface '{interfaceName}' not found");
-        var ipProps = targetInterface.GetIPProperties();
-        var ipv4 = ipProps.UnicastAddresses
-            .FirstOrDefault(a => a.Address.AddressFamily == AddressFamily.InterNetwork);
-        
-        if (ipv4 == null)
-            throw new Exception($"No IPv4 address found on interface '{interfaceName}'");
-        return ipv4.Address;
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "ip",
+                Arguments = $"-4 addr show {interfaceName} | grep -oP '(?<=inet\\s)\\d+(\\.\\d+){{3}}'",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            }
+        };
+        process.Start();
+        var output = process.StandardOutput.ReadToEnd().Trim();
+        process.WaitForExit();
+        if (string.IsNullOrEmpty(output))
+            throw new Exception($"Network interface '{interfaceName}' not found or has no IPv4 address");
+        if (IPAddress.TryParse(output, out var ipAddress))
+            return ipAddress;
+        throw new Exception($"Invalid IP address for interface '{interfaceName}': {output}");
     }
     public async Task<string> GetAsync(string url)
     {
