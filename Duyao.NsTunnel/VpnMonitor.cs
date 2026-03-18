@@ -79,9 +79,12 @@ public class VpnMonitor
                     Console.WriteLine("Try another connection");
                     await ConnectVpn();
                 }
-                // 第2步：执行sstpc命令
-                await ExecuteSstpc(host,int.Parse(port));
-                _isConnected = true;
+                else
+                {
+                    // 第2步：执行sstpc命令
+                    await ExecuteSstpc(host, int.Parse(port));
+                    _isConnected = true;
+                }
             }
         }
         catch (Exception ex)
