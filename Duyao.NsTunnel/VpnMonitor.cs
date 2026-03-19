@@ -71,10 +71,10 @@ public class VpnMonitor
                 }
             };
             process.Start();
-            var output = process.StandardOutput.ReadToEndAsync().Result;
+            var output = process.StandardOutput.ReadToEndAsync().Result?.Trim();
             process.WaitForExit();
             AotSimpleLogger.Debug($"netns name=[{output}]");
-            return Task.FromResult(output?.Trim().Trim('\n','\r'));
+            return Task.FromResult(output);
         }
         catch
         {
