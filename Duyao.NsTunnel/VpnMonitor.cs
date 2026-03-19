@@ -21,7 +21,7 @@ public class VpnMonitor
 
     public Task Start()
     {
-        AotSimpleLogger.Info("Tunnel Monitor started");
+        AotSimpleLogger.Info("Tunnel monitor started");
         //await ConnectVpn();
         StartTimers();
         return Task.CompletedTask;
@@ -125,7 +125,7 @@ public class VpnMonitor
         };
 
         _vpnProcess.Start();
-        AotSimpleLogger.Info("Tunnel Thread started");
+        AotSimpleLogger.Info("Tunnel thread started");
         return Task.CompletedTask;
     }
 
@@ -164,7 +164,7 @@ public class VpnMonitor
 
             await process.WaitForExitAsync(cts.Token);
             if (process.ExitCode != 0)
-                throw new Exception($"ping failed with exit code {process.ExitCode}");
+                throw new Exception($"failed with exit code {process.ExitCode}");
 
             var output = await process.StandardOutput.ReadToEndAsync();
             return output;
@@ -172,14 +172,14 @@ public class VpnMonitor
         catch (OperationCanceledException)
         {
             process.Kill();
-            throw new Exception("ping command timed out");
+            throw new Exception("timed out");
         }
     }
 
 
     public async Task EnsureEnv()
     {
-        AotSimpleLogger.Info("Init App");
+        AotSimpleLogger.Info("Init app");
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
@@ -274,7 +274,7 @@ public class VpnMonitor
             {
                 _vpnProcess?.Kill();
                 _vpnProcess?.Dispose();
-                AotSimpleLogger.Info("Tunnel Thread stopped");
+                AotSimpleLogger.Info("Tunnel thread stopped");
             }
         }
         catch (Exception ex)
