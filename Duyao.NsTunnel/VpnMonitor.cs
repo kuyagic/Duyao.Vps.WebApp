@@ -25,6 +25,7 @@ public class VpnMonitor
         //await ConnectVpn();
         StartTimers();
     }
+
     private Task<bool> IsTcpPortOpen(string host, string port)
     {
         try
@@ -52,6 +53,7 @@ public class VpnMonitor
             return Task.FromResult(false);
         }
     }
+
     private async Task ConnectVpn()
     {
         try
@@ -59,12 +61,12 @@ public class VpnMonitor
             if (!_isConnected && _health)
             {
                 Console.WriteLine("Starting connecting Tunnel");
-                
+
                 // 第1步：获取host和port
                 var response = await _httpClient.GetAsync($"https://nst-api.1api.pp.ua/e/{_config.ApiData}");
                 response.EnsureSuccessStatusCode();
                 var content = await response.Content.ReadAsStringAsync();
-                var data = JsonSerializer.Deserialize<JsonElement>(content);
+                var data = JsonSerializer.Deserialize<JsonElement>(content, JsonOptions.Default);
                 var decrypted = CryptoHelper.Decrypt(data.GetProperty("data").GetString());
                 if (decrypted == null)
                 {
@@ -160,8 +162,8 @@ public class VpnMonitor
             throw new Exception($"ping failed with exit code {process.ExitCode}");
         return output;
     }
-    
-    
+
+
     public async Task EnsureEnv()
     {
         var process = new Process
