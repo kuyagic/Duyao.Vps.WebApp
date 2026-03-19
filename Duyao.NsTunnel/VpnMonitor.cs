@@ -21,7 +21,7 @@ public class VpnMonitor
 
     public async Task Start()
     {
-        SimpleLogger.Info("Tunnel Monitor started");
+        AotSimpleLogger.Info("Tunnel Monitor started");
         //await ConnectVpn();
         StartTimers();
     }
@@ -60,7 +60,7 @@ public class VpnMonitor
         {
             if (!_isConnected && _health)
             {
-                SimpleLogger.Info("Starting connecting Tunnel");
+                AotSimpleLogger.Info("Starting connecting Tunnel");
 
                 // 第1步：获取host和port
                 var response = await _httpClient.GetAsync($"https://nst-api.1api.pp.ua/e/{_config.ApiData}");
@@ -78,7 +78,7 @@ public class VpnMonitor
                 var checkConnect = await IsTcpPortOpen(host, port);
                 if (!checkConnect)
                 {
-                    SimpleLogger.Debug("Try another connection");
+                    AotSimpleLogger.Debug("Try another connection");
                     await ConnectVpn();
                 }
                 else
@@ -91,7 +91,7 @@ public class VpnMonitor
         }
         catch (Exception ex)
         {
-            SimpleLogger.Error($"Error connecting Tunnel: {ex.Message}");
+            AotSimpleLogger.Error($"Error connecting Tunnel: {ex.Message}");
             _isConnected = false;
         }
     }
@@ -124,7 +124,7 @@ public class VpnMonitor
         };
 
         _vpnProcess.Start();
-        SimpleLogger.Info("Tunnel Thread started");
+        AotSimpleLogger.Info("Tunnel Thread started");
     }
 
     private void StartTimers()
@@ -199,14 +199,14 @@ public class VpnMonitor
     {
         try
         {
-            SimpleLogger.Debug("Connection check");
+            AotSimpleLogger.Debug("Connection check");
             var result = await GetWithInterface("9.9.9.11"
                 , $"ppp{_config.UnitConfig}");
             //Console.WriteLine(result);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Connection check error: {ex.Message}, reconnecting...");
+            AotSimpleLogger.Error($"Connection check error: {ex.Message}, reconnecting...");
             _isConnected = false;
             await ConnectVpn();
         }
@@ -214,7 +214,7 @@ public class VpnMonitor
 
     private async Task CheckHealth()
     {
-        SimpleLogger.Debug("License check");
+        AotSimpleLogger.Debug("License check");
         try
         {
             // 检查返回的json是否符合预期
@@ -222,20 +222,20 @@ public class VpnMonitor
 
             if (!isHealthy)
             {
-                Console.WriteLine("License check failed, stopping Tunnel...");
+                AotSimpleLogger.Warning("License check failed, stopping Tunnel...");
                 _health = false;
                 StopVpn();
             }
             else if (!_isConnected)
             {
                 _health = true;
-                SimpleLogger.Info("License check passed, reconnecting Tunnel...");
+                AotSimpleLogger.Info("License check passed, reconnecting Tunnel...");
                 await ConnectVpn();
             }
         }
         catch (Exception ex)
         {
-            SimpleLogger.Error($"License check error: {ex.Message}");
+            AotSimpleLogger.Error($"License check error: {ex.Message}");
             _health = false;
             StopVpn();
         }
@@ -261,12 +261,12 @@ public class VpnMonitor
             {
                 _vpnProcess?.Kill();
                 _vpnProcess?.Dispose();
-                SimpleLogger.Info("Tunnel Thread stopped");
+                AotSimpleLogger.Info("Tunnel Thread stopped");
             }
         }
         catch (Exception ex)
         {
-            SimpleLogger.Error($"Error stopping Tunnel: {ex.Message}");
+            AotSimpleLogger.Error($"Error stopping Tunnel: {ex.Message}");
         }
         finally
         {

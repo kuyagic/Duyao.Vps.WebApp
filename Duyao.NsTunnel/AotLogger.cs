@@ -9,10 +9,10 @@ public enum LogLevel
     Fatal
 }
 
-public static class SimpleLogger
+public static class AotSimpleLogger
 {
     private static int MinLog = 0;
-    public static void SetLogLevel(LogLevel level){MinLog = (int)level;}
+    public static void SetLogLevel(int level){MinLog = level;}
     private static readonly Dictionary<LogLevel, (ConsoleColor, string)> LevelConfig = new()
     {
         { LogLevel.Debug, (ConsoleColor.Gray, "DEBUG") },

@@ -15,15 +15,22 @@ await using (var fs = new FileStream(exePath!, FileMode.Open, FileAccess.Read))
 
 if (!ulid.StartsWith("DYC"))
 {
-    SimpleLogger.Error("Application Env Invalid");
-    SimpleLogger.Info("Contact https://t.me/ForPrivateChatBot");
+    AotSimpleLogger.Error("Application Env Invalid");
+    AotSimpleLogger.Info("Contact https://t.me/ForPrivateChatBot");
     Environment.Exit(5);
 }
 
-if (args.Length != 1)
+// 🔧 修复 CS0136：避免与入口 args 冲突 → 改为 cmdArgs
+var cmdArgs = Environment.GetCommandLineArgs().Skip(1).ToArray();
+
+var cmdArgResult = CommandLineParser.ParseCommandLineArgs(cmdArgs);
+var logLv = int.Parse(cmdArgResult["logLevel"].ToString() ?? "2");
+AotSimpleLogger.SetLogLevel(logLv);
+var location = Convert.ToString(cmdArgResult["license"]);
+if (string.IsNullOrEmpty(location))
 {
-    SimpleLogger.Error("Application Param Invalid");
-    SimpleLogger.Info("Contact https://t.me/ForPrivateChatBot");
+    AotSimpleLogger.Error("Application Param Invalid");
+    AotSimpleLogger.Info("Contact https://t.me/ForPrivateChatBot");
     Environment.Exit(5);
 }
 else
@@ -34,8 +41,8 @@ else
     }
     catch
     {
-        SimpleLogger.Error("Application Param Invalid");
-        SimpleLogger.Info("Contact https://t.me/ForPrivateChatBot");
+        AotSimpleLogger.Error("Application Param Invalid");
+        AotSimpleLogger.Info("Contact https://t.me/ForPrivateChatBot");
         Environment.Exit(5);
     }
 }
