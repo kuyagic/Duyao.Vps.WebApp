@@ -27,7 +27,7 @@ public class VpnMonitor
         return Task.CompletedTask;
     }
 
-    private Task<bool> IsTcpPortOpen(string host, string port)
+    public static Task<bool> IsTcpPortOpen(string host, string port)
     {
         try
         {
@@ -52,6 +52,33 @@ public class VpnMonitor
         catch
         {
             return Task.FromResult(false);
+        }
+    }
+    public static Task<string?> GetNetns()
+    {
+        try
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    //ping -I $INTERFACE -c 3 -W 5 $TARGET_IP
+                    FileName = "ip",
+                    Arguments = "netns identify",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                }
+            };
+            process.Start();
+            process.WaitForExit();
+            var output = process.StandardError.ReadToEndAsync().Result;
+            AotSimpleLogger.Debug($"netns name=[{output}]");
+            return Task.FromResult(output?.Trim());
+        }
+        catch
+        {
+            return Task.FromResult(default(string?));
         }
     }
 
@@ -109,8 +136,15 @@ public class VpnMonitor
         {
         }
 
-        var args = $"--log-level 1 --cert-warn --user {_config.VpnUser} --password {_config.VpnPassword} " +
-                   $"{host}:{port} require-mschap-v2 nodefaultroute noauth unit {_config.UnitConfig}";
+        var conditionParam1 = "";
+        var conditionParam2 = "nodefaultroute";
+        if (!string.IsNullOrWhiteSpace(_config.Netns))
+        {
+            conditionParam1 = "--save-server-route";
+            conditionParam2 = "defaultroute replacedefaultroute";
+        }
+        var args = $"--log-level 1 {conditionParam1} --cert-warn --user {_config.VpnUser} --password {_config.VpnPassword} " +
+                   $"{host}:{port} require-mschap-v2 {conditionParam2} noauth unit {_config.UnitConfig}";
 
         _vpnProcess = new Process
         {
@@ -175,8 +209,7 @@ public class VpnMonitor
             throw new Exception("timed out");
         }
     }
-
-
+    
     public async Task EnsureEnv()
     {
         AotSimpleLogger.Info("Init application");
