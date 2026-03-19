@@ -25,7 +25,7 @@ if (!ulid.StartsWith("DYC"))
 var cmdArgs = Environment.GetCommandLineArgs().Skip(1).ToArray();
 
 var cmdArgResult = CommandLineParser.ParseCommandLineArgs(cmdArgs);
-var logLv = int.Parse(cmdArgResult["logLevel"].ToString() ?? "2");
+var logLv = int.Parse(cmdArgResult["logLevel"].ToString() ?? "1");
 var location = Convert.ToString(cmdArgResult["license"]);
 
 AotSimpleLogger.SetLogLevel(logLv);

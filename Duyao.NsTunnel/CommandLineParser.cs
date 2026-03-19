@@ -5,7 +5,7 @@ internal abstract class CommandLineParser
 {
     public static Dictionary<string, object> ParseCommandLineArgs(string[] args
         , string license = ""
-        , int logLevel = 2
+        , int logLevel = 1
     )
     {
         var parameters = new Dictionary<string, object>

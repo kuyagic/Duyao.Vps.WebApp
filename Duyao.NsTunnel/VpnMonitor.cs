@@ -179,6 +179,7 @@ public class VpnMonitor
 
     public async Task EnsureEnv()
     {
+        AotSimpleLogger.Info("Init App");
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
