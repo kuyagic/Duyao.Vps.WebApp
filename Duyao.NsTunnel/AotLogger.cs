@@ -1,0 +1,45 @@
+﻿namespace Duyao.NsTunnel;
+
+public enum LogLevel
+{
+    Debug,
+    Info,
+    Warning,
+    Error,
+    Fatal
+}
+
+public static class SimpleLogger
+{
+    private static int MinLog = 0;
+    public static void SetLogLevel(LogLevel level){MinLog = (int)level;}
+    private static readonly Dictionary<LogLevel, (ConsoleColor, string)> LevelConfig = new()
+    {
+        { LogLevel.Debug, (ConsoleColor.Gray, "DEBUG") },
+        { LogLevel.Info, (ConsoleColor.Green, "INFO") },
+        { LogLevel.Warning, (ConsoleColor.Yellow, "WARN") },
+        { LogLevel.Error, (ConsoleColor.Red, "ERROR") },
+        { LogLevel.Fatal, (ConsoleColor.Magenta, "FATAL") }
+    };
+
+    private static void Log(LogLevel level, string message)
+    {
+        if ((int)level < MinLog)
+        {
+            return;
+        }
+        var (color, levelName) = LevelConfig[level];
+        var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        var logLine = $"[{timestamp}] [{levelName}] {message}";
+
+        Console.ForegroundColor = color;
+        Console.WriteLine(logLine);
+        Console.ResetColor();
+    }
+
+    public static void Debug(string message) => Log(LogLevel.Debug, message);
+    public static void Info(string message) => Log(LogLevel.Info, message);
+    public static void Warning(string message) => Log(LogLevel.Warning, message);
+    public static void Error(string message) => Log(LogLevel.Error, message);
+    public static void Fatal(string message) => Log(LogLevel.Fatal, message);
+}

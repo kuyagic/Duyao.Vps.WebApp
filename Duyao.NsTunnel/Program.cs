@@ -15,15 +15,15 @@ await using (var fs = new FileStream(exePath!, FileMode.Open, FileAccess.Read))
 
 if (!ulid.StartsWith("DYC"))
 {
-    Console.WriteLine("Application Env Invalid");
-    Console.WriteLine("Contact https://t.me/ForPrivateChatBot");
+    SimpleLogger.Error("Application Env Invalid");
+    SimpleLogger.Info("Contact https://t.me/ForPrivateChatBot");
     Environment.Exit(5);
 }
 
 if (args.Length != 1)
 {
-    Console.WriteLine("Application Param Invalid");
-    Console.WriteLine("Contact https://t.me/ForPrivateChatBot");
+    SimpleLogger.Error("Application Param Invalid");
+    SimpleLogger.Info("Contact https://t.me/ForPrivateChatBot");
     Environment.Exit(5);
 }
 else
@@ -34,8 +34,8 @@ else
     }
     catch
     {
-        Console.WriteLine("Application Param Invalid");
-        Console.WriteLine("Contact https://t.me/ForPrivateChatBot");
+        SimpleLogger.Error("Application Param Invalid");
+        SimpleLogger.Info("Contact https://t.me/ForPrivateChatBot");
         Environment.Exit(5);
     }
 }
