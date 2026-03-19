@@ -7,9 +7,9 @@ public class VpnMonitor
 {
     private readonly AppConfig _config;
     private readonly HttpClient _httpClient;
-    private Process _vpnProcess;
-    private Timer _healthCheckTimer;
-    private Timer _connectionCheckTimer;
+    private Process? _vpnProcess;
+    private Timer? _healthCheckTimer;
+    private Timer? _connectionCheckTimer;
     private bool _health = false;
     private bool _isConnected = false;
 
@@ -19,11 +19,12 @@ public class VpnMonitor
         _httpClient = new HttpClient();
     }
 
-    public async Task Start()
+    public Task Start()
     {
         AotSimpleLogger.Info("Tunnel Monitor started");
         //await ConnectVpn();
         StartTimers();
+        return Task.CompletedTask;
     }
 
     private Task<bool> IsTcpPortOpen(string host, string port)
@@ -96,7 +97,7 @@ public class VpnMonitor
         }
     }
 
-    private async Task ExecuteSstpc(string host, int port)
+    private Task ExecuteSstpc(string host, int port)
     {
         // 停止已有的进程
         try
@@ -125,6 +126,7 @@ public class VpnMonitor
 
         _vpnProcess.Start();
         AotSimpleLogger.Info("Tunnel Thread started");
+        return Task.CompletedTask;
     }
 
     private void StartTimers()
@@ -243,7 +245,7 @@ public class VpnMonitor
 
     public async Task<bool> DoCheck()
     {
-        var hUrl = $"https://nshealth.1api.pp.ua/{_config.HealthCheckUrl}";
+        var hUrl = $"https://nshealth.1api.pp.ua/{_config.LicenseCheckTicket}";
         var req = new HttpRequestMessage(HttpMethod.Head, hUrl);
         var response = await _httpClient.SendAsync(req);
         var responseCode = (int)response.StatusCode;

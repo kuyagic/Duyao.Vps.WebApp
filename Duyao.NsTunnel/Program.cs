@@ -4,12 +4,13 @@ using System.Text;
 using Duyao.NsTunnel;
 
 string ulid;
+var lastByteCount = 30;//DYC+Ulid = 3+26+pad
 var exePath = Environment.ProcessPath;
 await using (var fs = new FileStream(exePath!, FileMode.Open, FileAccess.Read))
 {
-    fs.Seek(-26, SeekOrigin.End);
-    var buffer = new byte[26];
-    fs.Read(buffer, 0, 26);
+    fs.Seek(lastByteCount*-1, SeekOrigin.End);
+    var buffer = new byte[lastByteCount];
+    fs.Read(buffer, 0, lastByteCount);
     ulid = Encoding.UTF8.GetString(buffer).Trim();
 }
 
@@ -50,7 +51,7 @@ else
 var config = new AppConfig
 {
     ApiData = location,
-    HealthCheckUrl = ulid[3..],
+    LicenseCheckTicket = ulid[3..],
     VpnUser = "vpn",
     VpnPassword = "vpn",
     UnitConfig = "555"

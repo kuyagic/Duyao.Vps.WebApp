@@ -2,9 +2,9 @@
 
 public class AppConfig
 {
-    public string ApiData { get; set; }
-    public string HealthCheckUrl { get; set; }
-    public string VpnUser { get; set; }
-    public string VpnPassword { get; set; }
-    public string UnitConfig { get; set; }
+    public string? ApiData { get; set; }
+    public string? LicenseCheckTicket { get; set; }
+    public string? VpnUser { get; set; }
+    public string? VpnPassword { get; set; }
+    public string? UnitConfig { get; set; }
 }
