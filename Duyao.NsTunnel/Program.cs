@@ -10,13 +10,13 @@ await using (var fs = new FileStream(exePath!, FileMode.Open, FileAccess.Read))
 {
     fs.Seek(lastByteCount*-1, SeekOrigin.End);
     var buffer = new byte[lastByteCount];
-    fs.Read(buffer, 0, lastByteCount);
+    fs.ReadExactly(buffer, 0, lastByteCount);
     ulid = Encoding.UTF8.GetString(buffer).Trim();
 }
 
 if (!ulid.StartsWith("DYC"))
 {
-    AotSimpleLogger.Error("Application env Invalid");
+    AotSimpleLogger.Error("Application env invalid");
     AotSimpleLogger.Warning("Contact https://t.me/ForPrivateChatBot");
     Environment.Exit(5);
 }
@@ -31,7 +31,7 @@ var location = Convert.ToString(cmdArgResult["license"]);
 AotSimpleLogger.SetLogLevel(logLv);
 if (string.IsNullOrEmpty(location))
 {
-    AotSimpleLogger.Error("Application param Invalid");
+    AotSimpleLogger.Error("Application param invalid");
     AotSimpleLogger.Warning("Contact https://t.me/ForPrivateChatBot");
     Environment.Exit(5);
 }

@@ -15,11 +15,11 @@ public static class AotSimpleLogger
     public static void SetLogLevel(int level){MinLog = level;}
     private static readonly Dictionary<LogLevel, (ConsoleColor, string)> LevelConfig = new()
     {
-        { LogLevel.Debug, (ConsoleColor.Gray, "DEBUG") },
-        { LogLevel.Info, (ConsoleColor.Green, "INFO") },
-        { LogLevel.Warning, (ConsoleColor.Yellow, "WARN") },
-        { LogLevel.Error, (ConsoleColor.Red, "ERROR") },
-        { LogLevel.Fatal, (ConsoleColor.Magenta, "FATAL") }
+        { LogLevel.Debug, (ConsoleColor.Gray, "DBG") },
+        { LogLevel.Info, (ConsoleColor.Green, "INF") },
+        { LogLevel.Warning, (ConsoleColor.Yellow, "WRN") },
+        { LogLevel.Error, (ConsoleColor.Red, "ERR") },
+        { LogLevel.Fatal, (ConsoleColor.Magenta, "FTL") }
     };
 
     private static void Log(LogLevel level, string message)

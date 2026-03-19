@@ -61,7 +61,7 @@ public class VpnMonitor
         {
             if (!_isConnected && _health)
             {
-                AotSimpleLogger.Info("Starting connecting Tunnel");
+                AotSimpleLogger.Info("Starting connecting tunnel");
 
                 // 第1步：获取host和port
                 var response = await _httpClient.GetAsync($"https://nst-api.1api.pp.ua/e/{_config.ApiData}");
@@ -71,7 +71,7 @@ public class VpnMonitor
                 var decrypted = CryptoHelper.Decrypt(data.GetProperty("data").GetString());
                 if (decrypted == null)
                 {
-                    throw new Exception("Data is Invalid");
+                    throw new Exception("Data is invalid");
                 }
 
                 var host = decrypted.Split(',')[0];
@@ -179,7 +179,7 @@ public class VpnMonitor
 
     public async Task EnsureEnv()
     {
-        AotSimpleLogger.Info("Init app");
+        AotSimpleLogger.Info("Init application");
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
@@ -195,7 +195,11 @@ public class VpnMonitor
         process.Start();
         await process.WaitForExitAsync();
         if (process.ExitCode != 0)
-            throw new Exception($"system env init failed with exit code {process.ExitCode}");
+        {
+            var msg = $"System env init failed with exit code {process.ExitCode}";
+            AotSimpleLogger.Error(msg);
+            Environment.Exit(process.ExitCode);
+        }
     }
 
     private async Task CheckConnection()
@@ -279,7 +283,7 @@ public class VpnMonitor
         }
         catch (Exception ex)
         {
-            AotSimpleLogger.Error($"Error stopping Tunnel: {ex.Message}");
+            AotSimpleLogger.Error($"Error stopping tunnel: {ex.Message}");
         }
         finally
         {
