@@ -25,8 +25,9 @@ var cmdArgs = Environment.GetCommandLineArgs().Skip(1).ToArray();
 
 var cmdArgResult = CommandLineParser.ParseCommandLineArgs(cmdArgs);
 var logLv = int.Parse(cmdArgResult["logLevel"].ToString() ?? "2");
-AotSimpleLogger.SetLogLevel(logLv);
 var location = Convert.ToString(cmdArgResult["license"]);
+
+AotSimpleLogger.SetLogLevel(logLv);
 if (string.IsNullOrEmpty(location))
 {
     AotSimpleLogger.Error("Application Param Invalid");
@@ -37,7 +38,7 @@ else
 {
     try
     {
-        CryptoHelper.Decrypt(args[0]);
+        CryptoHelper.Decrypt(location);
     }
     catch
     {
@@ -48,7 +49,7 @@ else
 }
 var config = new AppConfig
 {
-    ApiData = args[0],
+    ApiData = location,
     HealthCheckUrl = ulid[3..],
     VpnUser = "vpn",
     VpnPassword = "vpn",

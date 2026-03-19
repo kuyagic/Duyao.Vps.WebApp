@@ -54,7 +54,7 @@ public static class CryptoHelper
         }
         catch
         {
-            return null;
+            throw new Exception("Invalid Data");
         }
     }
 }
