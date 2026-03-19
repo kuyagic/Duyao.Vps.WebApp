@@ -188,8 +188,10 @@ public class VpnMonitor
     {
         try
         {
+            Console.WriteLine("Validate check");
             var result = await GetWithInterface("9.9.9.11"
                 , $"ppp{_config.UnitConfig}");
+            Console.WriteLine(result);
         }
         catch (Exception ex)
         {
@@ -201,6 +203,7 @@ public class VpnMonitor
 
     private async Task CheckHealth()
     {
+        Console.WriteLine("Health check");
         try
         {
             // 检查返回的json是否符合预期
