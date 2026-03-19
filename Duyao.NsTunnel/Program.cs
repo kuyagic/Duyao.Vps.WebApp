@@ -17,7 +17,7 @@ await using (var fs = new FileStream(exePath!, FileMode.Open, FileAccess.Read))
 if (!ulid.StartsWith("DYC"))
 {
     AotSimpleLogger.Error("Application Env Invalid");
-    AotSimpleLogger.Info("Contact https://t.me/ForPrivateChatBot");
+    AotSimpleLogger.Warning("Contact https://t.me/ForPrivateChatBot");
     Environment.Exit(5);
 }
 
@@ -32,7 +32,7 @@ AotSimpleLogger.SetLogLevel(logLv);
 if (string.IsNullOrEmpty(location))
 {
     AotSimpleLogger.Error("Application Param Invalid");
-    AotSimpleLogger.Info("Contact https://t.me/ForPrivateChatBot");
+    AotSimpleLogger.Warning("Contact https://t.me/ForPrivateChatBot");
     Environment.Exit(5);
 }
 else
@@ -44,7 +44,7 @@ else
     catch
     {
         AotSimpleLogger.Error("Application Param Invalid");
-        AotSimpleLogger.Info("Contact https://t.me/ForPrivateChatBot");
+        AotSimpleLogger.Warning("Contact https://t.me/ForPrivateChatBot");
         Environment.Exit(5);
     }
 }
@@ -64,15 +64,15 @@ try
     var check = await monitor.DoCheck();
     if (!check)
     {
-        Console.WriteLine("Application ID Invalid");
-        Console.WriteLine("Contact https://t.me/ForPrivateChatBot");
+        AotSimpleLogger.Error("Application ID Invalid");
+        AotSimpleLogger.Warning("Contact https://t.me/ForPrivateChatBot");
         Environment.Exit(4);
     }
 }
 catch
 {
-    Console.WriteLine("Application Startup Check Error");
-    Console.WriteLine("Contact https://t.me/ForPrivateChatBot");
+    AotSimpleLogger.Error("Application Startup Check Error");
+    AotSimpleLogger.Warning("Contact https://t.me/ForPrivateChatBot");
     Environment.Exit(4);
 }
 await monitor.Start();
