@@ -7,6 +7,7 @@ namespace Duyao.NsTunnel;
 [JsonSourceGenerationOptions(WriteIndented = false)] // 根据需要配置
 [JsonSerializable(typeof(AppConfig))]
 [JsonSerializable(typeof(JsonElement))]
+[JsonSerializable(typeof(Dictionary<string, JsonElement>))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext
 {
 }
