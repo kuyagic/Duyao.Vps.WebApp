@@ -156,11 +156,22 @@ public class VpnMonitor
             }
         };
         process.Start();
-        var output = await process.StandardOutput.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        if (process.ExitCode != 0)
-            throw new Exception($"ping failed with exit code {process.ExitCode}");
-        return output;
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)); // 10秒超时
+
+            await process.WaitForExitAsync(cts.Token);
+            if (process.ExitCode != 0)
+                throw new Exception($"ping failed with exit code {process.ExitCode}");
+
+            var output = await process.StandardOutput.ReadToEndAsync();
+            return output;
+        }
+        catch (OperationCanceledException)
+        {
+            process.Kill();
+            throw new Exception("ping command timed out");
+        }
     }
 
 
@@ -191,7 +202,7 @@ public class VpnMonitor
             Console.WriteLine("Validate check");
             var result = await GetWithInterface("9.9.9.11"
                 , $"ppp{_config.UnitConfig}");
-            Console.WriteLine(result);
+            //Console.WriteLine(result);
         }
         catch (Exception ex)
         {
