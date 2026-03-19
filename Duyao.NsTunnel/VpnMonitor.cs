@@ -74,7 +74,7 @@ public class VpnMonitor
             var output = process.StandardOutput.ReadToEndAsync().Result;
             process.WaitForExit();
             AotSimpleLogger.Debug($"netns name=[{output}]");
-            return Task.FromResult(output?.Trim());
+            return Task.FromResult(output?.Trim().Trim('\n','\r'));
         }
         catch
         {
