@@ -208,9 +208,16 @@ public class VpnMonitor
         }
         catch (Exception ex)
         {
-            AotSimpleLogger.Error($"Connection check error: {ex.Message}, reconnecting...");
-            _isConnected = false;
-            await ConnectVpn();
+            if (_health)
+            {
+                AotSimpleLogger.Error($"Connection check error: {ex.Message}, reconnecting...");
+                _isConnected = false;
+                await ConnectVpn();
+            }
+            else
+            {
+                _isConnected = false;
+            }
         }
     }
 
@@ -224,9 +231,12 @@ public class VpnMonitor
 
             if (!isHealthy)
             {
-                AotSimpleLogger.Warning("License check failed, stopping Tunnel...");
-                _health = false;
-                StopVpn();
+                if (_health)
+                {
+                    AotSimpleLogger.Warning("License check failed, stopping Tunnel...");
+                    _health = false;
+                    StopVpn();
+                }
             }
             else if (!_isConnected)
             {
