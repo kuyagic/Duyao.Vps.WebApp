@@ -132,11 +132,11 @@ public class VpnMonitor
         {
             _vpnProcess?.Kill();
             _vpnProcess?.Dispose();
-            AotSimpleLogger.Debug("tunnel thread killed");
+            AotSimpleLogger.Debug("tunnel process killed");
         }
         catch(Exception exp)
         {
-            AotSimpleLogger.Debug($"tunnel thread killing error {exp.Message}");
+            AotSimpleLogger.Debug($"tunnel process killing error {exp.Message}");
         }
 
         var conditionParam1 = "";
@@ -163,12 +163,12 @@ public class VpnMonitor
 
         _vpnProcess.Start();
         AotSimpleLogger.Info("tunnel thread started");
-        await _vpnProcess.WaitForExitAsync();
-        if (_vpnProcess.ExitCode != 0)
-        {
-            AotSimpleLogger.Debug($"vpnProcess exit {_vpnProcess.ExitCode}");
-            await ConnectVpn();
-        }
+        // await _vpnProcess.WaitForExitAsync();
+        // if (_vpnProcess.ExitCode != 0)
+        // {
+        //     AotSimpleLogger.Debug($"vpnProcess exit {_vpnProcess.ExitCode}");
+        //     await ConnectVpn();
+        // }
     }
 
     private void StartTimers()
@@ -247,7 +247,7 @@ public class VpnMonitor
     {
         try
         {
-            AotSimpleLogger.Debug("Connection check");
+            AotSimpleLogger.Debug($"【{_vpnProcess?.Id}】Connection check");
             var result = await GetWithInterface("9.9.9.11"
                 , $"ppp{_config.UnitConfig}");
             //Console.WriteLine(result);
