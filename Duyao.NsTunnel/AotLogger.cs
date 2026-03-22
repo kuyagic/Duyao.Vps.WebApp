@@ -30,7 +30,7 @@ public static class AotSimpleLogger
         }
         var (color, levelName) = LevelConfig[level];
         var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-        var logLine = $"[{timestamp}] [{levelName}] {message}";
+        var logLine = $"[{timestamp}] [{Thread.CurrentThread.ManagedThreadId}] [{levelName}] {message}";
 
         Console.ForegroundColor = color;
         Console.WriteLine(logLine);

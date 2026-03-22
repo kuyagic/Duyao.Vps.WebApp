@@ -124,16 +124,19 @@ public class VpnMonitor
         }
     }
 
-    private Task ExecuteSstpc(string host, int port)
+    private async Task ExecuteSstpc(string host, int port)
     {
+        AotSimpleLogger.Debug("tunnel method entry");
         // 停止已有的进程
         try
         {
             _vpnProcess?.Kill();
             _vpnProcess?.Dispose();
+            AotSimpleLogger.Debug("tunnel thread killed");
         }
-        catch
+        catch(Exception exp)
         {
+            AotSimpleLogger.Debug($"tunnel thread killing error {exp.Message}");
         }
 
         var conditionParam1 = "";
@@ -159,8 +162,13 @@ public class VpnMonitor
         };
 
         _vpnProcess.Start();
-        AotSimpleLogger.Info("Tunnel thread started");
-        return Task.CompletedTask;
+        AotSimpleLogger.Info("tunnel thread started");
+        await _vpnProcess.WaitForExitAsync();
+        if (_vpnProcess.ExitCode != 0)
+        {
+            AotSimpleLogger.Debug($"vpnProcess exit {_vpnProcess.ExitCode}");
+            await ConnectVpn();
+        }
     }
 
     private void StartTimers()
