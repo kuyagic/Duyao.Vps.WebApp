@@ -167,7 +167,7 @@ public class VpnMonitor
         };
 
         _vpnProcess.Start();
-        AotSimpleLogger.Info("Tunnel thread started");
+        AotSimpleLogger.Info("Tunnel process started");
         return Task.CompletedTask;
         // await _vpnProcess.WaitForExitAsync();
         // if (_vpnProcess.ExitCode != 0)
@@ -283,6 +283,10 @@ public class VpnMonitor
         if (ownEnv?.Equals("long1234") ?? false)
         {
             _health = true;
+            if (!_isConnected)
+            {
+                await ConnectVpn();
+            }
             return;
         }
 
