@@ -83,6 +83,17 @@ public class VpnMonitor
         }
     }
 
+    public static Task<bool> CheckGodMode(string godCompare)
+    {
+        if (string.IsNullOrEmpty(godCompare))
+        {
+            return Task.FromResult(false);
+        }
+        var ownEnv = Environment.GetEnvironmentVariable("DY_NST_LICENSE");
+        var ret =  ownEnv?.Equals(godCompare) ?? false;
+        return Task.FromResult(ret);
+    }
+
     private async Task ConnectVpn()
     {
         try
@@ -279,8 +290,7 @@ public class VpnMonitor
 
     private async Task CheckHealth()
     {
-        var ownEnv = Environment.GetEnvironmentVariable("DY_NST_LICENSE");
-        if (ownEnv?.Equals("long1234") ?? false)
+        if (_config.IsGod)
         {
             _health = true;
             if (!_isConnected)

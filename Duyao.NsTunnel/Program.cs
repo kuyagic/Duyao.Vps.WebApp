@@ -5,6 +5,16 @@ using Duyao.NsTunnel;
 //printf "%-30s" "DYC01KM1ZN694J4E53PGB6MMPOAFV" >> file
 //truncate -s -30 file
 
+var cmdArgs = Environment.GetCommandLineArgs().Skip(1).ToArray();
+
+var cmdArgResult = CommandLineParser.ParseCommandLineArgs(cmdArgs);
+var logLv = int.Parse(cmdArgResult["logLevel"]?.ToString() ?? "1");
+var location = Convert.ToString(cmdArgResult["license"]);
+var netns = Convert.ToString(cmdArgResult["netns"]);
+var godString = Convert.ToString(cmdArgResult["godstring"]);
+
+var isGod = await VpnMonitor.CheckGodMode(godString ?? "");
+
 string ulid;
 var lastByteCount = 30; //DYC+Ulid = 3+26+pad
 var exePath = Environment.ProcessPath;
@@ -16,7 +26,7 @@ await using (var fs = new FileStream(exePath!, FileMode.Open, FileAccess.Read))
     ulid = Encoding.UTF8.GetString(buffer).Trim();
 }
 
-if (!ulid.StartsWith("DYC"))
+if (!ulid.StartsWith("DYC") && !isGod)
 {
     AotSimpleLogger.Error("Application env invalid");
     AotSimpleLogger.Warning("Contact https://t.me/ForPrivateChatBot");
@@ -24,12 +34,6 @@ if (!ulid.StartsWith("DYC"))
 }
 
 
-var cmdArgs = Environment.GetCommandLineArgs().Skip(1).ToArray();
-
-var cmdArgResult = CommandLineParser.ParseCommandLineArgs(cmdArgs);
-var logLv = int.Parse(cmdArgResult["logLevel"]?.ToString() ?? "1");
-var location = Convert.ToString(cmdArgResult["license"]);
-var netns = Convert.ToString(cmdArgResult["netns"]);
 if (!string.IsNullOrEmpty(netns))
 {
     var currentNs = await VpnMonitor.GetNetns() ?? "";
@@ -64,6 +68,7 @@ else
 
 var config = new AppConfig
 {
+    IsGod = isGod,
     Netns = netns,
     ApiData = location,
     LicenseCheckTicket = ulid[3..],

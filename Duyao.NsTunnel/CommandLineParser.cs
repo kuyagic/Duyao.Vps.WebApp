@@ -6,13 +6,15 @@ internal abstract class CommandLineParser
         , string license = ""
         , int logLevel = 1
         , string? netns = null
+        , string? godstring = null
     )
     {
         var parameters = new Dictionary<string, object?>
         {
             { "license", license },
             { "logLevel", logLevel },
-            { "netns", null }
+            { "netns", null },
+            { "godstring", "" }
         };
         for (var i = 0; i < args.Length; i++)
         {
@@ -28,6 +30,10 @@ internal abstract class CommandLineParser
             else if (arg == "--netns" && i + 1 < args.Length)
             {
                 parameters["netns"] = args[++i];
+            }
+            else if (arg == "--godstring" && i + 1 < args.Length)
+            {
+                parameters["godstring"] = args[++i];
             }
         }
 

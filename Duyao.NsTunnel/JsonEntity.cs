@@ -10,6 +10,8 @@ public class AppConfig
     public string? VpnUser { get; set; }
     public string? VpnPassword { get; set; }
     public string? UnitConfig { get; set; }
+
+    public bool IsGod { get; set; } = false;
 }
 
 public class NstApiResponse
