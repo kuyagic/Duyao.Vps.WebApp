@@ -94,8 +94,8 @@ public class VpnMonitor
                 var response = await _httpClient.GetAsync($"https://nst-api.1api.pp.ua/e/{_config.ApiData}");
                 response.EnsureSuccessStatusCode();
                 var content = await response.Content.ReadAsStringAsync();
-                var data = JsonSerializer.Deserialize<JsonElement>(content, JsonOptions.Default);
-                var decrypted = CryptoHelper.Decrypt(data.GetProperty("data").GetString());
+                var data = JsonSerializer.Deserialize<NstApiResponse>(content, JsonOptions.Default);
+                var decrypted = CryptoHelper.Decrypt(data?.Data);
                 if (decrypted == null)
                 {
                     throw new Exception("Data is invalid");
@@ -124,7 +124,7 @@ public class VpnMonitor
         }
     }
 
-    private async Task ExecuteSstpc(string host, int port)
+    private Task ExecuteSstpc(string host, int port)
     {
         AotSimpleLogger.Debug("Tunnel method entry");
         // 停止已有的进程
@@ -163,6 +163,7 @@ public class VpnMonitor
 
         _vpnProcess.Start();
         AotSimpleLogger.Info("Tunnel thread started");
+        return Task.CompletedTask;
         // await _vpnProcess.WaitForExitAsync();
         // if (_vpnProcess.ExitCode != 0)
         // {
