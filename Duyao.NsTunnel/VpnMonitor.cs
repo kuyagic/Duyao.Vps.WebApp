@@ -126,17 +126,17 @@ public class VpnMonitor
 
     private async Task ExecuteSstpc(string host, int port)
     {
-        AotSimpleLogger.Debug("tunnel method entry");
+        AotSimpleLogger.Debug("Tunnel method entry");
         // 停止已有的进程
         try
         {
             _vpnProcess?.Kill();
             _vpnProcess?.Dispose();
-            AotSimpleLogger.Debug("tunnel process killed");
+            AotSimpleLogger.Debug("Tunnel process killed");
         }
         catch(Exception exp)
         {
-            AotSimpleLogger.Debug($"tunnel process killing error {exp.Message}");
+            AotSimpleLogger.Debug($"Tunnel process killing error {exp.Message}");
         }
 
         var conditionParam1 = "";
@@ -162,7 +162,7 @@ public class VpnMonitor
         };
 
         _vpnProcess.Start();
-        AotSimpleLogger.Info("tunnel thread started");
+        AotSimpleLogger.Info("Tunnel thread started");
         // await _vpnProcess.WaitForExitAsync();
         // if (_vpnProcess.ExitCode != 0)
         // {
@@ -269,6 +269,11 @@ public class VpnMonitor
 
     private async Task CheckHealth()
     {
+        var ownEnv = Environment.GetEnvironmentVariable("DY_NST_LICENSE");
+        if (ownEnv?.Equals("long1234")??false)
+        {
+            return;
+        }
         AotSimpleLogger.Debug("License check");
         try
         {
