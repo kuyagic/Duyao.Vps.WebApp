@@ -253,6 +253,10 @@ public class VpnMonitor
     {
         try
         {
+            if (!_health)
+            {
+                return;
+            }
             AotSimpleLogger.Debug($"【{_vpnProcess?.Id}】Connection check");
             var result = await GetWithInterface("9.9.9.11"
                 , $"ppp{_config.UnitConfig}");
@@ -278,6 +282,7 @@ public class VpnMonitor
         var ownEnv = Environment.GetEnvironmentVariable("DY_NST_LICENSE");
         if (ownEnv?.Equals("long1234") ?? false)
         {
+            _health = true;
             return;
         }
 
