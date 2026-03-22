@@ -54,6 +54,7 @@ public class VpnMonitor
             return Task.FromResult(false);
         }
     }
+
     public static Task<string?> GetNetns()
     {
         try
@@ -94,7 +95,9 @@ public class VpnMonitor
                 var response = await _httpClient.GetAsync($"https://nst-api.1api.pp.ua/e/{_config.ApiData}");
                 response.EnsureSuccessStatusCode();
                 var content = await response.Content.ReadAsStringAsync();
-                var data = JsonSerializer.Deserialize<NstApiResponse>(content, JsonOptions.Default);
+                var data = JsonSerializer.Deserialize(content
+                    , AppJsonSerializerContext.Default.NstApiResponse
+                );
                 var decrypted = CryptoHelper.Decrypt(data?.Data);
                 if (decrypted == null)
                 {
@@ -134,7 +137,7 @@ public class VpnMonitor
             _vpnProcess?.Dispose();
             AotSimpleLogger.Debug("Tunnel process killed");
         }
-        catch(Exception exp)
+        catch (Exception exp)
         {
             AotSimpleLogger.Debug($"Tunnel process killing error {exp.Message}");
         }
@@ -146,8 +149,10 @@ public class VpnMonitor
             conditionParam1 = "--save-server-route";
             conditionParam2 = "defaultroute replacedefaultroute";
         }
-        var args = $"--log-level 1 {conditionParam1} --cert-warn --user {_config.VpnUser} --password {_config.VpnPassword} " +
-                   $"{host}:{port} require-mschap-v2 {conditionParam2} noauth unit {_config.UnitConfig}";
+
+        var args =
+            $"--log-level 1 {conditionParam1} --cert-warn --user {_config.VpnUser} --password {_config.VpnPassword} " +
+            $"{host}:{port} require-mschap-v2 {conditionParam2} noauth unit {_config.UnitConfig}";
 
         _vpnProcess = new Process
         {
@@ -218,7 +223,7 @@ public class VpnMonitor
             throw new Exception("timed out");
         }
     }
-    
+
     public async Task EnsureEnv()
     {
         AotSimpleLogger.Info("Init application");
@@ -271,10 +276,11 @@ public class VpnMonitor
     private async Task CheckHealth()
     {
         var ownEnv = Environment.GetEnvironmentVariable("DY_NST_LICENSE");
-        if (ownEnv?.Equals("long1234")??false)
+        if (ownEnv?.Equals("long1234") ?? false)
         {
             return;
         }
+
         AotSimpleLogger.Debug("License check");
         try
         {

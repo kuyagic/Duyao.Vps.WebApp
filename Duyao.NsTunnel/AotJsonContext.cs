@@ -11,11 +11,11 @@ internal partial class AppJsonSerializerContext : JsonSerializerContext
 {
 }
 
-internal static class JsonOptions
-{
-    public static readonly JsonSerializerOptions Default = new()
-    {
-        TypeInfoResolver = AppJsonSerializerContext.Default,
-        WriteIndented = false
-    };
-}
+// internal static class JsonOptions
+// {
+//     public static readonly JsonSerializerOptions Default = new()
+//     {
+//         TypeInfoResolver = AppJsonSerializerContext.Default,
+//         WriteIndented = false
+//     };
+// }
