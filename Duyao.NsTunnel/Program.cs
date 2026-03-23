@@ -77,28 +77,19 @@ var config = new AppConfig
     UnitConfig = "555"
 };
 
-// .NET 6+ 内置方法，专门为此设计
-using var cts = new CancellationTokenSource();
-// 一行搞定监听
-Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
 var monitor = new VpnMonitor(config);
 try
 {
     await monitor.EnsureEnv();
     var check = await monitor.DoCheck();
-    if (!check)
+    if (!check && !isGod)
     {
         AotSimpleLogger.Error("Application ID invalid");
         AotSimpleLogger.Warning("Contact https://t.me/ForPrivateChatBot");
         Environment.Exit(4);
     }
-    await monitor.Start(cts.Token);
-}
-catch (OperationCanceledException)
-{
-    AotSimpleLogger.Info("Exiting");
-    monitor.Exiting();
+    await monitor.Start();
 }
 catch
 {
@@ -107,6 +98,17 @@ catch
     Environment.Exit(4);
 }
 
-
-// 保持程序运行
-await Task.Delay(Timeout.Infinite);
+// .NET 6+ 内置方法，专门为此设计
+using var cts = new CancellationTokenSource();
+// 一行搞定监听
+Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
+try
+{
+    await Task.Delay(Timeout.Infinite, cts.Token);
+}
+catch (OperationCanceledException)
+{
+    monitor.Exiting();
+    AotSimpleLogger.Info("Exiting");
+    Environment.Exit(0);
+}

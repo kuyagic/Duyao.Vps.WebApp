@@ -19,7 +19,7 @@ public class VpnMonitor
         _httpClient = new HttpClient();
     }
 
-    public Task Start(CancellationToken ct)
+    public Task Start()
     {
         AotSimpleLogger.Info("Tunnel monitor started");
         //await ConnectVpn();
