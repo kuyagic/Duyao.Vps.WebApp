@@ -19,7 +19,7 @@ public class VpnMonitor
         _httpClient = new HttpClient();
     }
 
-    public Task Start()
+    public Task Start(CancellationToken ct)
     {
         AotSimpleLogger.Info("Tunnel monitor started");
         //await ConnectVpn();
@@ -89,8 +89,9 @@ public class VpnMonitor
         {
             return Task.FromResult(false);
         }
+
         var ownEnv = Environment.GetEnvironmentVariable("DY_NST_LICENSE");
-        var ret =  ownEnv?.Equals(godCompare) ?? false;
+        var ret = ownEnv?.Equals(godCompare) ?? false;
         return Task.FromResult(ret);
     }
 
@@ -268,6 +269,7 @@ public class VpnMonitor
             {
                 return;
             }
+
             AotSimpleLogger.Debug($"【{_vpnProcess?.Id}】Connection check");
             var result = await GetWithInterface("9.9.9.11"
                 , $"ppp{_config.UnitConfig}");
@@ -297,6 +299,7 @@ public class VpnMonitor
             {
                 await ConnectVpn();
             }
+
             return;
         }
 
@@ -360,6 +363,19 @@ public class VpnMonitor
         finally
         {
             _isConnected = false;
+        }
+    }
+
+    public void Exiting()
+    {
+        try
+        {
+            _vpnProcess?.Kill();
+            _vpnProcess?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            AotSimpleLogger.Error($"Error exiting: {ex.Message}");
         }
     }
 }
