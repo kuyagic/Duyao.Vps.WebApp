@@ -22,18 +22,20 @@ public class S3Controller : CustomBaseController
         _configuration = opt;
     }
 
-    [HttpPost("s3")]
-    public Task<IActionResult> GetConfig()
+    [HttpPost("s3/{name}")]
+    public Task<IActionResult> GetConfig(string name)
     {
-        var s3Config = _configuration.GetSection("S3").Get<S3Config>();
+        var s3ConfigList = _configuration.GetSection("S3List").Get<List<S3Config>>();
+        var s3Config = s3ConfigList?.FirstOrDefault(x => x.Name == name);
         return Task.FromResult<IActionResult>(Ok(s3Config?.Bkt));
     }
 
-    [HttpGet("s3/{**path}")]
-    [HttpHead("s3/{**path}")]
-    public Task<IActionResult> DefaultRoot(string path)
+    [HttpGet("s3/{name}/{**path}")]
+    [HttpHead("s3/{name}/{**path}")]
+    public Task<IActionResult> DefaultRoot(string name, string path)
     {
-        var s3Config = _configuration.GetSection("S3").Get<S3Config>();
+        var s3ConfigList = _configuration.GetSection("S3List").Get<List<S3Config>>();
+        var s3Config = s3ConfigList?.FirstOrDefault(x => x.Name == name);
         if (s3Config == null)
         {
             return Task.FromResult<IActionResult>(NotFound());
