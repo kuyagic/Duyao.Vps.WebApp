@@ -22,6 +22,23 @@ public class S3Controller : CustomBaseController
         _configuration = opt;
     }
 
+    private string? ExtractS3KeyFromPath(string? fullPath, string configName)
+    {
+        // fullPath 示例: /api/s3/wsb/MyFolder/MyFile.txt
+        // 需要提取: MyFolder/MyFile.txt
+
+        var prefix = $"/api/s3/{configName}/";
+
+        if (fullPath?.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ?? false)
+        {
+            // 使用 OrdinalIgnoreCase 匹配前缀，但保留后续部分的原始大小写
+            var key = fullPath.Substring(prefix.Length);
+            return Uri.UnescapeDataString(key); // 处理 URL 编码
+        }
+
+        return fullPath;
+    }
+
     [HttpPost("s3/{name}")]
     public Task<IActionResult> GetConfig(string name)
     {
@@ -34,6 +51,16 @@ public class S3Controller : CustomBaseController
     [HttpHead("s3/{name}/{**path}")]
     public Task<IActionResult> DefaultRoot(string name, string path)
     {
+        var fullPath = HttpContext.Request.Path.Value;
+
+        var s3KeyFromPath = ExtractS3KeyFromPath(fullPath, name);
+        var prefix = $"/s3/{name}";
+        var resultPath = "/";
+        if (s3KeyFromPath?.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ?? false)
+        {
+            resultPath = s3KeyFromPath.Remove(0, prefix.Length);
+        }
+
         var s3ConfigList = _configuration.GetSection("S3List").Get<List<S3Config>>();
         var s3Config = s3ConfigList?.FirstOrDefault(x => x.Name == name);
         if (s3Config == null)
@@ -46,17 +73,18 @@ public class S3Controller : CustomBaseController
             ServiceURL = s3Config.Url,
             ForcePathStyle = true
         };
+        _logger.LogInformation($"s3={name},path={s3KeyFromPath}");
         using var client = new AmazonS3Client(s3Config.Key, s3Config.Secret, config);
         var request = new GetPreSignedUrlRequest
         {
             BucketName = s3Config.Bkt,
-            Key = path.TrimStart('/'),
-            Expires = DateTime.UtcNow.AddSeconds(300)
+            Key = resultPath.TrimStart('/'),
+            Expires = DateTime.UtcNow.AddSeconds(300),
+            Verb = HttpVerb.GET
         };
 
-        request.Verb = HttpVerb.GET;
-
         var url = client.GetPreSignedURL(request);
+        _logger.LogInformation(url);
         return Task.FromResult<IActionResult>(
             Redirect(url)
         );
