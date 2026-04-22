@@ -8,13 +8,15 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Duyao.FileLink.Controllers;
 
+[ApiController]
+[Route("[controller]")]
 public class S3Controller : CustomBaseController
 {
-    private readonly ILogger<DirectController> _logger;
+    private readonly ILogger<S3Controller> _logger;
     private readonly IConfiguration _configuration;
 
     public S3Controller(
-        ILogger<DirectController> logger
+        ILogger<S3Controller> logger
         , IConfiguration opt
     )
     {
@@ -39,7 +41,7 @@ public class S3Controller : CustomBaseController
         return fullPath;
     }
 
-    [HttpPost("s3/{name}")]
+    [HttpPost("{name}")]
     public Task<IActionResult> GetConfig(string name)
     {
         var s3ConfigList = _configuration.GetSection("S3List").Get<List<S3Config>>();
@@ -47,9 +49,9 @@ public class S3Controller : CustomBaseController
         return Task.FromResult<IActionResult>(Ok(s3Config?.Bkt));
     }
 
-    [HttpGet("s3/{name}/{**path}")]
-    [HttpHead("s3/{name}/{**path}")]
-    public Task<IActionResult> DefaultRoot(string name, string path)
+    [HttpGet("{name}/{**path}")]
+    [HttpHead("{name}/{**path}")]
+    public async Task<IActionResult> DefaultRoot(string name, string path)
     {
         var fullPath = HttpContext.Request.Path.Value;
 
@@ -65,7 +67,13 @@ public class S3Controller : CustomBaseController
         var s3Config = s3ConfigList?.FirstOrDefault(x => x.Name == name);
         if (s3Config == null)
         {
-            return Task.FromResult<IActionResult>(NotFound());
+            _logger.LogInformation($"s3={name},not found");
+            return NotFound();
+        }
+
+        if (string.IsNullOrEmpty(resultPath.TrimStart('/')))
+        {
+            return NotFound();
         }
 
         var config = new AmazonS3Config
@@ -73,8 +81,28 @@ public class S3Controller : CustomBaseController
             ServiceURL = s3Config.Url,
             ForcePathStyle = true
         };
-        _logger.LogInformation($"s3={name},path={s3KeyFromPath}");
+
         using var client = new AmazonS3Client(s3Config.Key, s3Config.Secret, config);
+        var testFile = new GetObjectMetadataRequest
+        {
+            BucketName = s3Config.Bkt,
+            Key = resultPath.TrimStart('/'),
+        };
+        try
+        {
+            var testResp = await client.GetObjectMetadataAsync(testFile);
+            if (testResp.ContentLength == 0)
+            {
+                return NotFound();
+            }
+        }
+        catch (Exception exp)
+        {
+            _logger.LogError(exp, exp.Message);
+            return NotFound();
+        }
+
+        _logger.LogInformation($"s3={name},path={s3KeyFromPath}");
         var request = new GetPreSignedUrlRequest
         {
             BucketName = s3Config.Bkt,
@@ -83,10 +111,8 @@ public class S3Controller : CustomBaseController
             Verb = HttpVerb.GET
         };
 
-        var url = client.GetPreSignedURL(request);
+        var url = await client.GetPreSignedURLAsync(request);
         _logger.LogInformation(url);
-        return Task.FromResult<IActionResult>(
-            Redirect(url)
-        );
+        return Redirect(url);
     }
 }
