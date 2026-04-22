@@ -21,9 +21,4 @@ public partial class DirectController
     {
         return GetVersion("DirectLink Box");
     }
-    [HttpGet("s3")]
-    public Task<IActionResult> S3Ees7()
-    {
-        return GetVersion("DirectLink eager-sphere-749");
-    }
 }

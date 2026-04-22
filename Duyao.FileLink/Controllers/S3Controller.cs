@@ -24,6 +24,12 @@ public class S3Controller : CustomBaseController
         _configuration = opt;
     }
 
+    [HttpGet("")]
+    public Task<IActionResult> S3Version()
+    {
+        return GetVersion("S3 Presign");
+    }
+
     private string? ExtractS3KeyFromPath(string? fullPath, string configName)
     {
         // fullPath 示例: /api/s3/wsb/MyFolder/MyFile.txt
@@ -68,12 +74,20 @@ public class S3Controller : CustomBaseController
         if (s3Config == null)
         {
             _logger.LogInformation($"s3={name},not found");
-            return NotFound();
+            return Ok(new ApiResponse
+            {
+                Ok = false,
+                Message = "NotFound"
+            });
         }
 
         if (string.IsNullOrEmpty(resultPath.TrimStart('/')))
         {
-            return NotFound();
+            return Ok(new ApiResponse
+            {
+                Ok = false,
+                Message = "NotFound"
+            });
         }
 
         var config = new AmazonS3Config
@@ -93,16 +107,23 @@ public class S3Controller : CustomBaseController
             var testResp = await client.GetObjectMetadataAsync(testFile);
             if (testResp.ContentLength == 0)
             {
-                return NotFound();
+                return Ok(new ApiResponse
+                {
+                    Ok = false,
+                    Message = "Forbidden"
+                });
             }
         }
-        catch (Exception exp)
+        catch
         {
-            _logger.LogError(exp, exp.Message);
-            return NotFound();
+            return Ok(new ApiResponse
+            {
+                Ok = false,
+                Message = "Forbidden"
+            });
         }
 
-        _logger.LogInformation($"s3={name},path={s3KeyFromPath}");
+        _logger.LogInformation($"s3={name},path={resultPath}");
         var request = new GetPreSignedUrlRequest
         {
             BucketName = s3Config.Bkt,
