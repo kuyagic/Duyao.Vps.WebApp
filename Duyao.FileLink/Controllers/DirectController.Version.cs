@@ -21,4 +21,10 @@ public partial class DirectController
     {
         return GetVersion("DirectLink Box");
     }
+    
+    [HttpGet("cloudapp")]
+    public Task<IActionResult> DefaultCloudApp()
+    {
+        return GetVersion("DirectLink CloudApp");
+    }
 }
