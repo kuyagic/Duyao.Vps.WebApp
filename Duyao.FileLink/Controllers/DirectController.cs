@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using System.Web;
 using Duyao.ApiBase;
 using Microsoft.AspNetCore.Mvc;
@@ -141,5 +142,56 @@ public partial class DirectController : CustomBaseController
         return NotFound();
     }
 
+    #endregion
+    
+    #region CloudApp
+    [HttpGet("cloudapp/{hash}")]
+    [HttpHead("cloudapp/{hash}")]
+    public async Task<IActionResult> DownloadCloudAppFile(string hash, CancellationToken cancellationToken)
+    {
+        var id = hash;
+        using var http = new HttpClient();
+        http.DefaultRequestHeaders.UserAgent.ParseAdd(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+
+        string pageUrl = $"https://share.zight.com/{id}";
+        var html = await http.GetStringAsync(pageUrl, cancellationToken);
+
+        // 匹配所有 cdn.zight.com/items/{id}/... 链接 (含 \u0026 转义的查询参数), 排除 thumbnail
+        var matches = Regex.Matches(html,
+            @"https?://[^""\s<>]*?cdn\.zight\.com/items/" + Regex.Escape(id) +
+            @"/[^""\s<>]+",
+            RegexOptions.IgnoreCase);
+
+        // 优先选 source=download 的 (携带 response-content-disposition 保留原始文件名)
+        // HTML 中 & 被转义为 \u0026，需还原
+        foreach (Match m in matches)
+        {
+            if (!m.Value.Contains("thumbnail", StringComparison.OrdinalIgnoreCase)
+                && m.Value.Contains("source=download", StringComparison.OrdinalIgnoreCase))
+                return Redirect(m.Value.Replace(@"\u0026", "&"));
+        }
+
+        // 其次选 viewer 裸链
+        foreach (Match m in matches)
+        {
+            if (!m.Value.Contains("thumbnail", StringComparison.OrdinalIgnoreCase))
+                return Redirect(m.Value.Replace(@"\u0026", "&").Split('?')[0]);
+        }
+
+        // 备用: 从 thumbnail URL 中提取真实文件路径
+        var m2 = Regex.Match(html,
+            @"https?://thumbnail\.cdn\.zight\.com/[pit]/" + Regex.Escape(id) +
+            @"/[^""?\s]*?/([^""?\s]+?cdn\.zight\.com/items/[^""\s<>]+)",
+            RegexOptions.IgnoreCase);
+
+        if (m2.Success)
+        {
+            var targetUrl = "https://" + m2.Groups[1].Value.Replace(@"\u0026", "&").Split('?')[0];
+            return Redirect(targetUrl);
+        }
+
+        return NotFound();
+    }
     #endregion
 }
