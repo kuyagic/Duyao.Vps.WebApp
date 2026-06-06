@@ -1,5 +1,4 @@
 ﻿using Duyao.ApiBase;
-using Duyao.WebUtil.BaseItem;
 using Duyao.WebUtil.Helper;
 using Duyao.TelegramFile.Entity;
 using Microsoft.AspNetCore.Mvc;

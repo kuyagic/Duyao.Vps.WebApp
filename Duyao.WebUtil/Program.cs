@@ -42,7 +42,7 @@ try
     builder.Configuration.AddEnvironmentVariables();
 
 
-    Helpers.Log = (lvl, str) => { };
+    Helpers.Log = (_, _) => { };
     builder.Services.AddSingleton<Client>(provider =>
         {
             var logger = provider.GetRequiredService<ILogger<Client>>();

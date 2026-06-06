@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Duyao.WebUtil.BaseItem;
+namespace Duyao.WebUtil.Helper;
 
 public class PushStreamResult : IActionResult
 {

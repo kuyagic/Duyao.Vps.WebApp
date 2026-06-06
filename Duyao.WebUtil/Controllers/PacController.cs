@@ -19,13 +19,6 @@ public class PacController : CustomBaseController
         _httpClientFactory = httpClientFactory;
     }
 
-    [HttpGet]
-    [Route("")]
-    public Task<IActionResult> DefaultSmsForward()
-    {
-        return GetVersion("PacGenerator");
-    }
-
     private static string CidrToMask(byte prefix)
     {
         uint mask = (0xFFFFFFFFu << (32 - prefix)) & 0xFFFFFFFFu;
@@ -41,7 +34,7 @@ public class PacController : CustomBaseController
         response.EnsureSuccessStatusCode();
 
         var text = await response.Content.ReadAsStringAsync(cancellationToken);
-        var cidrLines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        var cidrLines = text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
 
         var conditions = new List<string>();
         foreach (var line in cidrLines)
@@ -56,14 +49,15 @@ public class PacController : CustomBaseController
         }
 
         // 补充内网段
-        conditions.AddRange(new[]
-        {
+        conditions.AddRange(
+        [
             "        isPlainHostName(host) ||",
             "        isInNet(host, \"10.0.0.0\", \"255.0.0.0\") ||",
             "        isInNet(host, \"172.16.0.0\", \"255.240.0.0\") ||",
             "        isInNet(host, \"192.168.0.0\", \"255.255.0.0\") ||",
             "        isInNet(host, \"127.0.0.0\", \"255.0.0.0\")"
-        });
+        ]
+            );
 
         // 修掉最后的 " ||"
         if (conditions.Count > 0)

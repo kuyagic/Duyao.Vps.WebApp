@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
 using Duyao.ApiBase;
-using Duyao.WebUtil.BaseItem;
+using Duyao.WebUtil.Helper;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 
@@ -13,14 +13,12 @@ public class SmsForwardController : CustomBaseController
 {
     private readonly SmsConfig? _smsConfig;
     private readonly ILogger<SmsForwardController> _logger;
-    private readonly IConfiguration _configuration;
 
     public SmsForwardController(
         ILogger<SmsForwardController> logger
         , IConfiguration config
     )
     {
-        _configuration = config;
         _logger = logger;
         _smsConfig = config.GetSection("SmsForward").Get<SmsConfig>();
     }
@@ -34,26 +32,30 @@ public class SmsForwardController : CustomBaseController
 
     [HttpPost]
     [Route("kv")]
-    public async Task<IActionResult> ProcessKv([FromBody] JObject obj)
+    public async Task<IActionResult> ProcessKv([FromBody] JObject? obj)
     {
-        if (obj == null) _logger.LogInformation("obj is <NULL>");
+        if (obj == null)
+        {
+            _logger.LogInformation("obj is <NULL>");
+            return await Task.Run(() => BadRequest("body NULL"));
+        }
 
         var cfg = _smsConfig;
 
-        var checkKey = new string[] { "address", "text", "date_sent", "tag" }
+        var checkKey = new[] { "address", "text", "date_sent", "tag" }
             .Any(p => !obj.ContainsKey(p));
         if (checkKey) return await Task.Run(() => BadRequest("key not exists"));
 
         //DateTime.Parse("1970-01-01 0:00:00").AddMilliseconds(1715936332994).ToLocalTime()
-        var smsFrom = obj["address"].ToString();
-        var smsText = obj["text"]?.ToString();
-        var smsDate = obj["date_sent"].ToString();
-        var smsTag = (obj["tag"] ?? "").ToString();
+        var smsFrom = obj["address"]?.ToString() ?? "";
+        var smsText = obj["text"]?.ToString() ?? "";
+        var smsDate = obj["date_sent"]?.ToString() ?? "";
+        var smsTag = obj["tag"]?.ToString() ?? "";
 
         smsText = System.Net.WebUtility.HtmlEncode(smsText);
 
         //提取发件人抬头标
-        Match match = Regex.Match(smsText ?? string.Empty, @"^【([^】]+)】");
+        Match match = Regex.Match(smsText, @"^【([^】]+)】");
         var smsTextHeader = match.Success ? match.Groups[1].Value : string.Empty;
 
         if (!long.TryParse(smsDate, out var lDate)) return await Task.Run(() => BadRequest("Date Error"));
@@ -65,10 +67,14 @@ public class SmsForwardController : CustomBaseController
         _logger.LogInformation($"sms DateTime=[{retSmsDateString}]");
 
         var parseMode = "html";
-        var fwdObj = cfg.Forward;
+        var fwdObj = cfg?.Forward;
+        if(fwdObj == null)
+        {
+            return await Task.Run(() => BadRequest("Forward Config NULL"));
+        }
         var fwdUrl = $"{fwdObj.ApiHost}/bot{fwdObj.TelegramBotId}/sendMessage";
         var hc = new HttpClient();
-        foreach (var pattern in cfg.Pattern)
+        foreach (var pattern in cfg?.Pattern ?? Enumerable.Empty<string>())
         {
             var m = Regex.Match(smsText, pattern);
             if (m.Success)
@@ -108,7 +114,6 @@ public class SmsForwardController : CustomBaseController
 
         _logger.LogInformation("Catch All");
         var catchAllMsg = new StringBuilder();
-        catchAllMsg = new StringBuilder();
         catchAllMsg.AppendLine(smsText);
         catchAllMsg.AppendLine($"Tag: #SMS , #m{DateTime.Now:yyyyMM} , #d{DateTime.Now:yyyyMMdd}");
         catchAllMsg.AppendLine($"Device: <code>{smsTag}</code>");
