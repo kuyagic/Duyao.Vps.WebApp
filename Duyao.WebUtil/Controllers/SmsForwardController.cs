@@ -1,26 +1,35 @@
-﻿using System.Reflection;
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
 using Duyao.ApiBase;
+using Duyao.WebUtil.BaseItem;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Duyao.SmsForward.Controllers;
+namespace Duyao.WebUtil.Controllers;
 
 [ApiController]
-[Route("")]
-public class RootController : CustomBaseController
+[Route("smsForward")]
+public class SmsForwardController : CustomBaseController
 {
-    private readonly IOptions<AppConfigObject> _config;
-    private readonly ILogger<RootController> _logger;
+    private readonly SmsConfig? _smsConfig;
+    private readonly ILogger<SmsForwardController> _logger;
+    private readonly IConfiguration _configuration;
 
-    public RootController(ILogger<RootController> logger, IOptions<AppConfigObject> option
+    public SmsForwardController(
+        ILogger<SmsForwardController> logger
+        , IConfiguration config
     )
     {
+        _configuration = config;
         _logger = logger;
-        _config = option;
+        _smsConfig = config.GetSection("SmsForward").Get<SmsConfig>();
+    }
+
+    [HttpGet]
+    [Route("")]
+    public Task<IActionResult> DefaultSmsForward()
+    {
+        return GetVersion("SmsForward");
     }
 
     [HttpPost]
@@ -29,7 +38,7 @@ public class RootController : CustomBaseController
     {
         if (obj == null) _logger.LogInformation("obj is <NULL>");
 
-        var cfg = _config.Value.Sms;
+        var cfg = _smsConfig;
 
         var checkKey = new string[] { "address", "text", "date_sent", "tag" }
             .Any(p => !obj.ContainsKey(p));
@@ -56,10 +65,10 @@ public class RootController : CustomBaseController
         _logger.LogInformation($"sms DateTime=[{retSmsDateString}]");
 
         var parseMode = "html";
-        var fwdObj = cfg.forward;
-        var fwdUrl = $"{fwdObj.api_host}/bot{fwdObj.telegram_bot_id}/sendMessage";
+        var fwdObj = cfg.Forward;
+        var fwdUrl = $"{fwdObj.ApiHost}/bot{fwdObj.TelegramBotId}/sendMessage";
         var hc = new HttpClient();
-        foreach (var pattern in cfg.pattern)
+        foreach (var pattern in cfg.Pattern)
         {
             var m = Regex.Match(smsText, pattern);
             if (m.Success)
@@ -84,7 +93,7 @@ public class RootController : CustomBaseController
 
                 var data = new
                 {
-                    chat_id = fwdObj.chat_id,
+                    chat_id = fwdObj.ChatId,
                     text = message.ToString(),
                     parse_mode = parseMode
                 };
@@ -112,7 +121,7 @@ public class RootController : CustomBaseController
 
         var catchAllData = new
         {
-            chat_id = fwdObj.catch_all,
+            chat_id = fwdObj.CatchAll,
             text = catchAllMsg.ToString(),
             parse_mode = parseMode
         };
@@ -160,16 +169,17 @@ public class RootController : CustomBaseController
         var smsText = obj["text"]?.ToString();
         var smsDate = obj["date_sent"].ToString();
         var smsTag = (obj["tag"] ?? "").ToString();*/
-        
+
         return await ProcessKv(nObject);
     }
-    
+
+
     [HttpGet]
-    [Route("")]
-    public Task<IActionResult> DefaultRoot()
+    [Route("config")]
+    public async Task<IActionResult> ShowConfig()
     {
-        return GetVersion("SmsForward");
+        return Ok(_smsConfig?.Pattern);
     }
-    
-    
+
+
 }

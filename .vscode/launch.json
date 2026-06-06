@@ -5,11 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "FileLink",
+            "name": "WebUtil",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "dotnet: build",
-            "program": "${workspaceFolder}/Duyao.FileLink/bin/Debug/net8.0/Duyao.FileLink.dll",
+            "program": "${workspaceFolder}/Duyao.WebUtil/bin/Debug/net8.0/Duyao.WebUtil.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,

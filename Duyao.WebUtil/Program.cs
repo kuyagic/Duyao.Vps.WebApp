@@ -1,6 +1,6 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Duyao.FileLink.Helper;
+using Duyao.WebUtil.Helper;
 using Duyao.TelegramFile.Entity;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.Logging.Console;
@@ -37,6 +37,7 @@ try
     );
 
     builder.Services.AddMvcCore();
+    builder.Services.AddHttpClient();
     builder.Services.Configure<WTelegramClientConfig>(builder.Configuration.GetSection("Telegram"));
     builder.Configuration.AddEnvironmentVariables();
 

@@ -1,12 +1,12 @@
 ﻿using Amazon.S3;
 using Amazon.S3.Model;
 using Duyao.ApiBase;
-using Duyao.FileLink.Helper;
+using Duyao.WebUtil.Helper;
 using Duyao.TelegramFile.Entity;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Duyao.FileLink.Controllers;
+namespace Duyao.WebUtil.Controllers;
 
 [ApiController]
 [Route("[controller]")]

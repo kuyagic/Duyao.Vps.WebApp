@@ -2,7 +2,7 @@
 using TL;
 using WTelegram;
 
-namespace Duyao.FileLink.Helper;
+namespace Duyao.WebUtil.Helper;
 
 public class WTelegramClientInitializer
 {

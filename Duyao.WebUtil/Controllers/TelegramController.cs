@@ -1,12 +1,12 @@
 ﻿using Duyao.ApiBase;
-using Duyao.FileLink.BaseItem;
-using Duyao.FileLink.Helper;
+using Duyao.WebUtil.BaseItem;
+using Duyao.WebUtil.Helper;
 using Duyao.TelegramFile.Entity;
 using Microsoft.AspNetCore.Mvc;
 using TL;
 using WTelegram;
 
-namespace Duyao.FileLink.Controllers;
+namespace Duyao.WebUtil.Controllers;
 
 [ApiController]
 [Route("[controller]")]

@@ -4,7 +4,7 @@ using System.Web;
 using Duyao.ApiBase;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Duyao.FileLink.Controllers;
+namespace Duyao.WebUtil.Controllers;
 
 [ApiController]
 [Route("[controller]")]

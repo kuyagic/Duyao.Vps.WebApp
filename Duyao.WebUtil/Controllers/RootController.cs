@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using WTelegram;
 
-namespace Duyao.FileLink.Controllers;
+namespace Duyao.WebUtil.Controllers;
 
 [ApiController]
 [Route("")]

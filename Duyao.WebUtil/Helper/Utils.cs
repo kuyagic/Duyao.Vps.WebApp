@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Duyao.FileLink.Helper;
+namespace Duyao.WebUtil.Helper;
 
 public static class Utils
 {

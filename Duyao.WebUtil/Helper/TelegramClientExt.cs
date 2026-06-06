@@ -3,7 +3,7 @@ using Duyao.TelegramFile.Entity;
 using TL;
 using WTelegram;
 
-namespace Duyao.FileLink.Helper;
+namespace Duyao.WebUtil.Helper;
 
 public static class TelegramClientExt
 {

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Duyao.FileLink.Controllers;
+namespace Duyao.WebUtil.Controllers;
 
 public partial class DirectController
 {
@@ -21,7 +21,7 @@ public partial class DirectController
     {
         return GetVersion("DirectLink Box");
     }
-    
+
     [HttpGet("cloudapp")]
     public Task<IActionResult> DefaultCloudApp()
     {

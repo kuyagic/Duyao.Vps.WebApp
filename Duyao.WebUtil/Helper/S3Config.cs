@@ -1,4 +1,4 @@
-﻿namespace Duyao.FileLink.Helper;
+﻿namespace Duyao.WebUtil.Helper;
 
 public class S3Config
 {
