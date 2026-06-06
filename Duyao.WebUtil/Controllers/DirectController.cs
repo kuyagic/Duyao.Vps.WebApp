@@ -11,14 +11,16 @@ namespace Duyao.WebUtil.Controllers;
 public partial class DirectController : CustomBaseController
 {
     private readonly ILogger<DirectController> _logger;
-
-    private static string ydxApiTemplate = "https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=https://disk.yandex.ru";
+    private readonly IHttpClientFactory _httpClientFactory;
+    private static readonly string YandexApiTemplate = "https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=https://disk.yandex.ru";
 
     public DirectController(
         ILogger<DirectController> logger
+        , IHttpClientFactory httpClientFactory
     )
     {
         _logger = logger;
+        _httpClientFactory = httpClientFactory;
     }
 
     #region YandexDisk
@@ -28,15 +30,14 @@ public partial class DirectController : CustomBaseController
     public async Task<IActionResult> DownloadYandexFile(string hash
         , CancellationToken cancellationToken)
     {
-        var hc = new HttpClient();
-        var url = $"{ydxApiTemplate}/d/{hash}";
+        var hc = _httpClientFactory.CreateClient();
+        var url = $"{YandexApiTemplate}/d/{hash}";
         var json = await hc.GetFromJsonAsync<JsonObject>(url
             , cancellationToken
         );
         if (json != null && json.ContainsKey("href"))
         {
-            var handler = new HttpClientHandler { AllowAutoRedirect = false };
-            var rhc = new HttpClient(handler);
+            var rhc = _httpClientFactory.CreateClient("NoRedirect");
             var href = json["href"]?.GetValue<string>();
             _logger.LogDebug(href);
             var resp = await rhc.GetAsync(href
@@ -74,15 +75,14 @@ public partial class DirectController : CustomBaseController
     public async Task<IActionResult> DownloadYandeImage(string hash
         , CancellationToken cancellationToken)
     {
-        var hc = new HttpClient();
-        var url = $"{ydxApiTemplate}/i/{hash}";
+        var hc = _httpClientFactory.CreateClient();
+        var url = $"{YandexApiTemplate}/i/{hash}";
         var json = await hc.GetFromJsonAsync<JsonObject>(url
             , cancellationToken
         );
         if (json != null && json.ContainsKey("href"))
         {
-            var handler = new HttpClientHandler { AllowAutoRedirect = false };
-            var rhc = new HttpClient(handler);
+            var rhc = _httpClientFactory.CreateClient("NoRedirect");
             var resp = await rhc.GetAsync(json["href"]?.GetValue<string>()
                 , cancellationToken);
             var redir = resp.Headers.Location?.ToString() ?? string.Empty;
@@ -125,7 +125,7 @@ public partial class DirectController : CustomBaseController
     public async Task<IActionResult> DownloadMylifeboxFirstShareFile(string hash
         , CancellationToken cancellationToken)
     {
-        var hc = new HttpClient();
+        var hc = _httpClientFactory.CreateClient();
         var lifeboxApiTemplate =
             $"https://mylifebox.com/api/share/public/list?publicToken={hash}&language=tr&sortBy=name&sortOrder=ASC&page=0&size=1";
         var json = await hc.GetFromJsonAsync<List<JsonObject>>(lifeboxApiTemplate
@@ -150,7 +150,7 @@ public partial class DirectController : CustomBaseController
     public async Task<IActionResult> DownloadCloudAppFile(string hash, CancellationToken cancellationToken)
     {
         var id = hash;
-        using var http = new HttpClient();
+        var http = _httpClientFactory.CreateClient();
         http.DefaultRequestHeaders.UserAgent.ParseAdd(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
 

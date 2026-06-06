@@ -38,6 +38,8 @@ try
 
     builder.Services.AddMvcCore();
     builder.Services.AddHttpClient();
+    builder.Services.AddHttpClient("NoRedirect")
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
     builder.Services.Configure<WTelegramClientConfig>(builder.Configuration.GetSection("Telegram"));
     builder.Configuration.AddEnvironmentVariables();
 

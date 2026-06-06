@@ -8,18 +8,6 @@ namespace Duyao.WebUtil.Controllers;
 [Route("")]
 public class RootController : CustomBaseController
 {
-    private readonly ILogger<RootController> _logger;
-    private readonly IConfiguration _configuration;
-
-    public RootController(
-        ILogger<RootController> logger
-        , IConfiguration config
-    )
-    {
-        _configuration = config;
-        _logger = logger;
-    }
-
     [HttpGet("")]
     public Task<IActionResult> DefaultRoot()
     {

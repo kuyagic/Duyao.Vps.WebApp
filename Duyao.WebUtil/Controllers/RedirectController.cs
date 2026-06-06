@@ -10,7 +10,6 @@ public class RedirectController : CustomBaseController
 {
     private readonly ILogger<RedirectController> _logger;
     private readonly string _redirectFile;
-    private FileSystemWatcher? _watcher;
 
     /// <summary>
     /// 原子替换整个字典，避免 LoadRedirects 中 Clear() 导致请求瞬时空窗
