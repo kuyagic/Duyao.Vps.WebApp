@@ -90,8 +90,8 @@ try
     });
 
     //显式初始化单例，不等到接口调用时才初始化。
-    //var init = app.Services.GetRequiredService<Client>().UserId;
-    //if (init > 0) logger.LogInformation($"Bot ID {init} Inited");
+    var init = app.Services.GetRequiredService<Client>().UserId;
+    if (init > 0) logger.LogInformation($"Bot ID {init} Inited");
 
     #endregion
 
