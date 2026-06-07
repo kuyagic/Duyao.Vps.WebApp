@@ -108,15 +108,19 @@ public class WTelegramClientInitializer
 
                         //template = {user_id},{msg_id}|filename|hash
                         var encTmpl = Utils.HashTelegramFileInfo(pu.user_id, m.ID);
-                        var replyText = $"{apiHostName}/{encTmpl}";
+                        var downloadUrl = $"{apiHostName}/{encTmpl}";
 
                         _logger.LogInformation($"receive {msgType} msg from chat(user) {pu.user_id}");
                         _logger.LogInformation($"Message Id {m.ID},text {m.message}");
-                        _logger.LogInformation($"URL {replyText}");
+                        _logger.LogInformation($"URL {downloadUrl}");
+
+                        var messageText = !string.IsNullOrEmpty(fileName)
+                            ? $"<b>{System.Net.WebUtility.HtmlEncode(fileName)}</b>\n<code>{downloadUrl}</code>"
+                            : $"<code>{downloadUrl}</code>";
+
                         if (!string.IsNullOrEmpty(fileName))
                         {
                             _logger.LogInformation($"Message Media FileName {fileName}");
-                            replyText = $"{fileName}\r\n{replyText}";
                         }
 
                         if (botResponse == 0) return;
@@ -128,8 +132,28 @@ public class WTelegramClientInitializer
                                 )
                                )
                             {
-                                await client.SendMessageAsync(new InputPeerUser(pu.user_id, 0), replyText,
-                                    reply_to_msg_id: m.ID);
+                                var entities = client.HtmlToEntities(ref messageText);
+                                var replyMarkup = new ReplyInlineMarkup
+                                {
+                                    rows =
+                                    [
+                                        new KeyboardButtonRow
+                                        {
+                                            buttons =
+                                            [
+                                                new KeyboardButtonUrl { text = "📥 Download", url = downloadUrl }
+                                            ]
+                                        }
+                                    ]
+                                };
+                                await client.Messages_SendMessage(
+                                    peer: new InputPeerUser(pu.user_id, 0),
+                                    message: messageText,
+                                    random_id: Random.Shared.NextInt64(),
+                                    entities: entities,
+                                    reply_markup: replyMarkup,
+                                    reply_to: new InputReplyToMessage { reply_to_msg_id = m.ID }
+                                );
                             }
                             else
                             {

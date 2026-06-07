@@ -94,22 +94,6 @@ public static class TelegramClientExt
         }
     }
 
-    // public static (long Offset, long FirstPartCut, long LastPartCut, long ReqLength, long PartCount)
-    //     CalculateChunkParameters(long fromBytes, long untilBytes, long fileSize, int chunkSize = 1024 * 1024)
-    // {
-    //     untilBytes = Math.Min(untilBytes, fileSize - 1);
-    //
-    //     var offset = fromBytes - fromBytes % chunkSize;
-    //     var firstPartCut = fromBytes - offset;
-    //     var lastPartCut = untilBytes % chunkSize + 1;
-    //
-    //     var reqLength = untilBytes - fromBytes + 1;
-    //     var partCount = (long)Math.Ceiling((double)untilBytes / chunkSize) -
-    //                     (long)Math.Floor((double)offset / chunkSize);
-    //
-    //     return (offset, firstPartCut, lastPartCut, reqLength, partCount);
-    // }
-
     public static async Task<TelegramGetMessageMediaResult> GetMessageMedia(
         this Client telegramClient
         , long chatId
