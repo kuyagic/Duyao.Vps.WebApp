@@ -1,9 +1,8 @@
 ﻿using Amazon.S3;
 using Amazon.S3.Model;
 using Duyao.ApiBase;
-using Duyao.WebUtil.Helper;
+using Duyao.WebUtil.Entity;
 using Duyao.TelegramFile.Entity;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Duyao.WebUtil.Controllers;

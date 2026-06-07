@@ -1,4 +1,4 @@
-﻿namespace Duyao.WebUtil.Helper;
+﻿namespace Duyao.WebUtil.Entity;
 
 public class SmsConfig
 {

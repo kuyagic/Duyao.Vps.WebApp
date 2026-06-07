@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Duyao.WebUtil.Helper;
+namespace Duyao.ApiBase;
 
 public static class Utils
 {

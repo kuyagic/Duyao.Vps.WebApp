@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Runtime.InteropServices;
 using Duyao.WebUtil.Helper;
 using Duyao.TelegramFile.Entity;
@@ -15,8 +14,7 @@ try
 {
     #region basePath Check
 
-    var basePath = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
-    if (string.IsNullOrEmpty(basePath)) basePath = AppContext.BaseDirectory;
+    var basePath = AppContext.BaseDirectory;
     var options = new WebApplicationOptions
     {
         ContentRootPath = basePath,

@@ -1,4 +1,5 @@
-﻿using Duyao.TelegramFile.Entity;
+﻿using Duyao.ApiBase;
+using Duyao.TelegramFile.Entity;
 using TL;
 using WTelegram;
 
@@ -35,7 +36,7 @@ public class WTelegramClientInitializer
             , s => s.Split(',').Select(long.Parse).ToArray()
         );
         if (string.IsNullOrEmpty(apiHash) || string.IsNullOrEmpty(botToken) || apiId == 0)
-            throw new InvalidOperationException("环境变量或者配置文件没找到正确配置");
+            throw new InvalidDataException("环境变量或者配置文件没找到正确配置");
 
         var client = new Client(apiId, apiHash);
         if (!string.IsNullOrEmpty(mtProxyUrl)) client.MTProxyUrl = mtProxyUrl;
@@ -59,7 +60,7 @@ public class WTelegramClientInitializer
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"连接异常: {ex.Message}");
+                    _logger.LogWarning($"连接异常: {ex.Message}");
                     await client.LoginBotIfNeeded(botToken);
                 }
             }
@@ -209,7 +210,7 @@ public class WTelegramClientInitializer
                 }
         }
 
-        var mgnr = client.WithUpdateManager(OnUpdate /*, "Updates.state"*/);
+        _ = client.WithUpdateManager(OnUpdate /*, "Updates.state"*/);
         KeepAliveAsync();
         return client;
     }

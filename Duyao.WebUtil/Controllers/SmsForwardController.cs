@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
 using Duyao.ApiBase;
-using Duyao.WebUtil.Helper;
+using Duyao.WebUtil.Entity;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 
