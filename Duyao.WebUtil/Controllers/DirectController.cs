@@ -22,6 +22,33 @@ public partial class DirectController : CustomBaseController
         _logger = logger;
         _httpClientFactory = httpClientFactory;
     }
+    
+    #region  VersionRoute
+
+    [HttpGet("")]
+    public Task<IActionResult> DefaultRoot()
+    {
+        return GetVersion("DirectLink");
+    }
+
+    [HttpGet("y")]
+    public Task<IActionResult> DefaultY()
+    {
+        return GetVersion("DirectLink Ydx");
+    }
+
+    [HttpGet("box")]
+    public Task<IActionResult> DefaultBox()
+    {
+        return GetVersion("DirectLink Box");
+    }
+
+    [HttpGet("cloudapp")]
+    public Task<IActionResult> DefaultCloudApp()
+    {
+        return GetVersion("DirectLink CloudApp");
+    }
+    #endregion
 
     #region YandexDisk
 
@@ -143,7 +170,7 @@ public partial class DirectController : CustomBaseController
     }
 
     #endregion
-    
+
     #region CloudApp
     [HttpGet("cloudapp/{hash}")]
     [HttpHead("cloudapp/{hash}")]
@@ -154,41 +181,59 @@ public partial class DirectController : CustomBaseController
         http.DefaultRequestHeaders.UserAgent.ParseAdd(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
 
-        string pageUrl = $"https://share.zight.com/{id}";
-        var html = await http.GetStringAsync(pageUrl, cancellationToken);
+        // 先尝试新版 share.zight.com，再尝试老版 share.getcloudapp.com
+        string[] shareUrls =
+        [
+            $"https://share.zight.com/{id}",
+            $"https://share.getcloudapp.com/{id}"
+        ];
 
-        // 匹配所有 cdn.zight.com/items/{id}/... 链接 (含 \u0026 转义的查询参数), 排除 thumbnail
-        var matches = Regex.Matches(html,
-            @"https?://[^""\s<>]*?cdn\.zight\.com/items/" + Regex.Escape(id) +
-            @"/[^""\s<>]+",
-            RegexOptions.IgnoreCase);
-
-        // 优先选 source=download 的 (携带 response-content-disposition 保留原始文件名)
-        // HTML 中 & 被转义为 \u0026，需还原
-        foreach (Match m in matches)
+        foreach (var pageUrl in shareUrls)
         {
-            if (!m.Value.Contains("thumbnail", StringComparison.OrdinalIgnoreCase)
-                && m.Value.Contains("source=download", StringComparison.OrdinalIgnoreCase))
-                return Redirect(m.Value.Replace(@"\u0026", "&"));
-        }
+            string html;
+            try
+            {
+                html = await http.GetStringAsync(pageUrl, cancellationToken);
+            }
+            catch (HttpRequestException)
+            {
+                continue; // 此域名不可达，尝试下一个
+            }
 
-        // 其次选 viewer 裸链
-        foreach (Match m in matches)
-        {
-            if (!m.Value.Contains("thumbnail", StringComparison.OrdinalIgnoreCase))
-                return Redirect(m.Value.Replace(@"\u0026", "&").Split('?')[0]);
-        }
+            // 匹配所有 cdn.zight.com/items/{id}/... 或 cdn.getcloudapp.com/items/{id}/... 链接
+            //> (含 \u0026 转义的查询参数), 排除 thumbnail
+            var matches = Regex.Matches(html,
+                @"https?://[^""\s<>]*?cdn\.(?:zight|getcloudapp)\.com/items/" + Regex.Escape(id) +
+                @"/[^""\s<>]+",
+                RegexOptions.IgnoreCase);
 
-        // 备用: 从 thumbnail URL 中提取真实文件路径
-        var m2 = Regex.Match(html,
-            @"https?://thumbnail\.cdn\.zight\.com/[pit]/" + Regex.Escape(id) +
-            @"/[^""?\s]*?/([^""?\s]+?cdn\.zight\.com/items/[^""\s<>]+)",
-            RegexOptions.IgnoreCase);
+            // 优先选 source=download 的 (携带 response-content-disposition 保留原始文件名)
+            // HTML 中 & 被转义为 \u0026，需还原
+            foreach (Match m in matches)
+            {
+                if (!m.Value.Contains("thumbnail", StringComparison.OrdinalIgnoreCase)
+                    && m.Value.Contains("source=download", StringComparison.OrdinalIgnoreCase))
+                    return Redirect(m.Value.Replace(@"\u0026", "&"));
+            }
 
-        if (m2.Success)
-        {
-            var targetUrl = "https://" + m2.Groups[1].Value.Replace(@"\u0026", "&").Split('?')[0];
-            return Redirect(targetUrl);
+            // 其次选 viewer 裸链
+            foreach (Match m in matches)
+            {
+                if (!m.Value.Contains("thumbnail", StringComparison.OrdinalIgnoreCase))
+                    return Redirect(m.Value.Replace(@"\u0026", "&").Split('?')[0]);
+            }
+
+            // 备用: 从 thumbnail URL 中提取真实文件路径
+            var m2 = Regex.Match(html,
+                @"https?://thumbnail\.cdn\.(?:zight|getcloudapp)\.com/[pit]/" + Regex.Escape(id) +
+                @"/[^""?\s]*?/([^""?\s]+?cdn\.(?:zight|getcloudapp)\.com/items/[^""\s<>]+)",
+                RegexOptions.IgnoreCase);
+
+            if (m2.Success)
+            {
+                var targetUrl = "https://" + m2.Groups[1].Value.Replace(@"\u0026", "&").Split('?')[0];
+                return Redirect(targetUrl);
+            }
         }
 
         return NotFound();

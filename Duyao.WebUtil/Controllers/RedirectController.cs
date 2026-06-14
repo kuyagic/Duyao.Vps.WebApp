@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Duyao.WebUtil.Controllers;
 
 [ApiController]
-[Route("redir")]
+[Route("[controller]")] //redir -
 public class RedirectController : CustomBaseController
 {
     private readonly ILogger<RedirectController> _logger;

@@ -8,7 +8,7 @@ using Newtonsoft.Json.Linq;
 namespace Duyao.WebUtil.Controllers;
 
 [ApiController]
-[Route("smsForward")]
+[Route("[controller]")]
 public class SmsForwardController : CustomBaseController
 {
     private readonly SmsConfig? _smsConfig;
