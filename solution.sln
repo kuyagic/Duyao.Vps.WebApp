@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Duyao.WebUtil", "Duyao.WebU
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Duyao.ApiBase", "Duyao.ApiBase\Duyao.ApiBase.csproj", "{D4AC06FD-1536-4E8E-89E1-2DFA621DE796}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud189Checkin", "Cloud189Checkin\Cloud189Checkin.csproj", "{F67CD15E-8535-40C7-BB94-7416FE69DA2D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,6 +20,10 @@ Global
 		{D4AC06FD-1536-4E8E-89E1-2DFA621DE796}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D4AC06FD-1536-4E8E-89E1-2DFA621DE796}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D4AC06FD-1536-4E8E-89E1-2DFA621DE796}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F67CD15E-8535-40C7-BB94-7416FE69DA2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F67CD15E-8535-40C7-BB94-7416FE69DA2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F67CD15E-8535-40C7-BB94-7416FE69DA2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F67CD15E-8535-40C7-BB94-7416FE69DA2D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
