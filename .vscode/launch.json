@@ -8,7 +8,7 @@
             "name": "WebUtil",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "dotnet: build",
+            "preLaunchTask": "ReSharper: Build",
             "program": "${workspaceFolder}/Duyao.WebUtil/bin/Debug/net8.0/Duyao.WebUtil.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
@@ -21,32 +21,18 @@
             }
         },
         {
-            "name": "NSTunnel",
+            "name": "Cloud189",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "dotnet: build",
-            "program": "${workspaceFolder}/Duyao.NsTunnel/bin/Debug/net8.0/Duyao.NsTunnel.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "stopAtEntry": false,
-            "console": "internalConsole",
-            "env": {
-            }
-        },
-        {
-            "name": "SMSForward",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "dotnet: build",
-            "program": "${workspaceFolder}/Duyao.SmsForward/bin/Debug/net8.0/Duyao.SmsForward.dll",
+            "preLaunchTask": "ReSharper: Build",
+            "program": "${workspaceFolder}/Cloud189Checkin/bin/Debug/net10.0/Cloud189Checkin.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
             "console": "internalConsole",
             "env": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
-                "DOTNET_ENVIRONMENT": "Development",
-                "ASPNETCORE_URLS": "http://localhost:5125"
+                "DOTNET_ENVIRONMENT": "Development"
             }
         }
     ]

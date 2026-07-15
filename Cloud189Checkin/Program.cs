@@ -137,7 +137,7 @@ List<Account> LoadAccounts()
         if (string.IsNullOrEmpty(u) || string.IsNullOrEmpty(p)) break;
         result.Add(new Account(u, p));
     }
-    Console.WriteLine($"[INFO] Loaded {result.Count} account(s) from TY_USERNAME_N/TY_PASSWORD_N env vars.");
+    Console.WriteLine($"[INFO] Loaded {result.Count} account{(result.Count > 1 ? "s" : "")} from TY_USERNAME_N/TY_PASSWORD_N env vars.");
     return result;
 }
 
@@ -200,8 +200,10 @@ async Task<(string AccessToken, string RefreshToken, int ExpiresIn)> RefreshToke
     Console.WriteLine("[INFO] Refreshing access token...");
     var content = new FormUrlEncodedContent(new Dictionary<string, string>
     {
-        ["clientId"] = AppId, ["refreshToken"] = refreshToken,
-        ["grantType"] = "refresh_token", ["format"] = "json"
+        ["clientId"] = AppId,
+        ["refreshToken"] = refreshToken,
+        ["grantType"] = "refresh_token",
+        ["format"] = "json"
     });
     var url = $"{AuthUrl}/api/oauth2/refreshToken.do";
     using var resp = await client.PostAsync(url, content);
@@ -258,10 +260,18 @@ async Task<SessionInfo> LoginByPassword(HttpClient client, string userName, stri
     lr.Headers.TryAddWithoutValidation("REQID", reqId);
     lr.Content = new FormUrlEncodedContent(new Dictionary<string, string>
     {
-        ["appKey"] = AppId, ["accountType"] = AccountType, ["validateCode"] = "",
-        ["captchaToken"] = captchaToken, ["dynamicCheck"] = "FALSE", ["clientType"] = "1",
-        ["cb_SaveName"] = "3", ["isOauth2"] = "false", ["returnUrl"] = ReturnUrl,
-        ["paramId"] = paramId, ["userName"] = $"{pre}{encUser}", ["password"] = $"{pre}{encPass}"
+        ["appKey"] = AppId,
+        ["accountType"] = AccountType,
+        ["validateCode"] = "",
+        ["captchaToken"] = captchaToken,
+        ["dynamicCheck"] = "FALSE",
+        ["clientType"] = "1",
+        ["cb_SaveName"] = "3",
+        ["isOauth2"] = "false",
+        ["returnUrl"] = ReturnUrl,
+        ["paramId"] = paramId,
+        ["userName"] = $"{pre}{encUser}",
+        ["password"] = $"{pre}{encPass}"
     });
     using var lresp = await client.SendAsync(lr);
     await CheckResponseAsync(lresp, lr.RequestUri!.ToString());
@@ -336,8 +346,8 @@ async Task<UserSizeInfo> GetUserSizeInfo(HttpClient client, string sessionKey, b
         root.TryGetProperty("familyCapacityInfo", out var fc) ? ParseCapacity(fc) : default);
     if (verbose)
     {
-        Console.WriteLine($"[DEBUG] Cloud: total={result.CloudCapacityInfo.TotalSize/1024/1024:F0}MB used={result.CloudCapacityInfo.UsedSize/1024/1024:F0}MB");
-        Console.WriteLine($"[DEBUG] Family: total={result.FamilyCapacityInfo.TotalSize/1024/1024:F0}MB used={result.FamilyCapacityInfo.UsedSize/1024/1024:F0}MB");
+        Console.WriteLine($"[DEBUG] Cloud: total={result.CloudCapacityInfo.TotalSize / 1024 / 1024:F0}MB used={result.CloudCapacityInfo.UsedSize / 1024 / 1024:F0}MB");
+        Console.WriteLine($"[DEBUG] Family: total={result.FamilyCapacityInfo.TotalSize / 1024 / 1024:F0}MB used={result.FamilyCapacityInfo.UsedSize / 1024 / 1024:F0}MB");
     }
     return result;
 }
