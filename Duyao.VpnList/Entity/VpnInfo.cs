@@ -28,9 +28,9 @@ public class VpnInfo
     [MaxLength(64)]
     public string? Country { get; set; }
 
-    [Column("isp_name")]
-    [MaxLength(128)]
-    public string? IspName { get; set; }
+    [Column("asn_org")]
+    [MaxLength(256)]
+    public string? AsnOrg { get; set; }
 
     [Column("ext_1")]
     [MaxLength(256)]

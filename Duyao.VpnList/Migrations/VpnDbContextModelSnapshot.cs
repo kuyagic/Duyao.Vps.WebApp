@@ -24,6 +24,11 @@ namespace Duyao.VpnList.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("id");
 
+                    b.Property<string>("AsnOrg")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("asn_org");
+
                     b.Property<string>("Country")
                         .HasMaxLength(64)
                         .HasColumnType("TEXT")
@@ -61,11 +66,6 @@ namespace Duyao.VpnList.Migrations
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(1)
                         .HasColumnName("is_valid");
-
-                    b.Property<string>("IspName")
-                        .HasMaxLength(128)
-                        .HasColumnType("TEXT")
-                        .HasColumnName("isp_name");
 
                     b.Property<string>("Port")
                         .IsRequired()

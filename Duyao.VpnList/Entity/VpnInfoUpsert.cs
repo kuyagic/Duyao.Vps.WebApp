@@ -19,8 +19,8 @@ public class VpnInfoUpsert
     [JsonProperty("country")]
     public string? Country { get; set; }
 
-    [JsonProperty("isp_name")]
-    public string? IspName { get; set; }
+    [JsonProperty("asn_org")]
+    public string? AsnOrg { get; set; }
 
     [JsonProperty("ext_1")]
     public string? Ext1 { get; set; }

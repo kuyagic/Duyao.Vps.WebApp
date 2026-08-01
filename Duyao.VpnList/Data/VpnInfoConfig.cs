@@ -34,9 +34,9 @@ public class VpnInfoConfig : IEntityTypeConfiguration<VpnInfo>
             .HasColumnName("country")
             .HasMaxLength(64);
 
-        builder.Property(v => v.IspName)
-            .HasColumnName("isp_name")
-            .HasMaxLength(128);
+        builder.Property(v => v.AsnOrg)
+            .HasColumnName("asn_org")
+            .HasMaxLength(256);
 
         builder.Property(v => v.Ext1)
             .HasColumnName("ext_1")

@@ -23,10 +23,10 @@ public class VpnInfoQuery
     public string? HostNameNotContains { get; set; }
 
     /// <summary>
-    /// isp_name 模糊包含
+    /// asn_org 模糊包含
     /// </summary>
-    [JsonProperty("isp_name_contains")]
-    public string? IspNameContains { get; set; }
+    [JsonProperty("asn_org_contains")]
+    public string? AsnOrgContains { get; set; }
 
     /// <summary>
     /// country 模糊包含，多个模糊包含

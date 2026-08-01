@@ -32,7 +32,7 @@ public class VpnController : CustomBaseController
     /// <summary>
     /// 查询
     /// a. host_name 模糊包含 / 模糊不包含
-    /// b. isp_name 模糊包含
+    /// b. asn_org 模糊包含
     /// c. country 模糊包含（多个，逗号分隔）
     /// d. is_valid 默认 1
     /// </summary>
@@ -51,7 +51,7 @@ public class VpnController : CustomBaseController
         [FromQuery(Name = "ip_contains")] string? ipContains,
         [FromQuery(Name = "host_name_contains")] string? hostNameContains,
         [FromQuery(Name = "host_name_not_contains")] string? hostNameNotContains,
-        [FromQuery(Name = "isp_name_contains")] string? ispNameContains,
+        [FromQuery(Name = "asn_org_contains")] string? asnOrgContains,
         [FromQuery(Name = "country_contains")] string? countryContains,
         [FromQuery(Name = "country_not_contains")] string? countryNotContains,
         [FromQuery(Name = "is_valid")] int? isValid,
@@ -59,7 +59,7 @@ public class VpnController : CustomBaseController
         [FromQuery(Name = "size")] int size = 50)
     {
         var q = BindFromQuery(ipContains, hostNameContains, hostNameNotContains,
-            ispNameContains, countryContains, countryNotContains, isValid);
+            asnOrgContains, countryContains, countryNotContains, isValid);
         q.Page = page;
         q.Size = size;
         return await ExecuteQueryAsync(q);
@@ -97,13 +97,13 @@ public class VpnController : CustomBaseController
         [FromQuery(Name = "ip_contains")] string? ipContains,
         [FromQuery(Name = "host_name_contains")] string? hostNameContains,
         [FromQuery(Name = "host_name_not_contains")] string? hostNameNotContains,
-        [FromQuery(Name = "isp_name_contains")] string? ispNameContains,
+        [FromQuery(Name = "asn_org_contains")] string? asnOrgContains,
         [FromQuery(Name = "country_contains")] string? countryContains,
         [FromQuery(Name = "country_not_contains")] string? countryNotContains,
         [FromQuery(Name = "is_valid")] int? isValid)
     {
         var q = BindFromQuery(ipContains, hostNameContains, hostNameNotContains,
-            ispNameContains, countryContains, countryNotContains, isValid);
+            asnOrgContains, countryContains, countryNotContains, isValid);
 
         var pool = await BuildQueryable(q).ToListAsync();
 
@@ -170,8 +170,8 @@ public class VpnController : CustomBaseController
         if (!string.IsNullOrEmpty(query.HostNameNotContains))
             q = q.Where(v => v.HostName == null || !v.HostName.Contains(query.HostNameNotContains));
 
-        if (!string.IsNullOrEmpty(query.IspNameContains))
-            q = q.Where(v => v.IspName != null && v.IspName.Contains(query.IspNameContains));
+        if (!string.IsNullOrEmpty(query.AsnOrgContains))
+            q = q.Where(v => v.AsnOrg != null && v.AsnOrg.Contains(query.AsnOrgContains));
 
         // country 多值模糊：任一 country 关键字命中即匹配 (OR 语义)
         var lowerCountries = (query.CountryContains ?? new List<string>())
@@ -206,7 +206,7 @@ public class VpnController : CustomBaseController
         string? ipContains,
         string? hostNameContains,
         string? hostNameNotContains,
-        string? ispNameContains,
+        string? asnOrgContains,
         string? countryContains,
         string? countryNotContains,
         int? isValid)
@@ -216,7 +216,7 @@ public class VpnController : CustomBaseController
             IpContains = ipContains,
             HostNameContains = hostNameContains,
             HostNameNotContains = hostNameNotContains,
-            IspNameContains = ispNameContains,
+            AsnOrgContains = asnOrgContains,
             IsValid = isValid ?? 1,
         };
         if (!string.IsNullOrWhiteSpace(countryContains))
@@ -368,7 +368,7 @@ public class VpnController : CustomBaseController
         if (!string.IsNullOrWhiteSpace(upsert.Port)) entity.Port = upsert.Port!;
         entity.HostName = upsert.HostName;
         entity.Country = upsert.Country;
-        entity.IspName = upsert.IspName;
+        entity.AsnOrg = upsert.AsnOrg;
         entity.Ext1 = upsert.Ext1;
         entity.Ext2 = upsert.Ext2;
         if (upsert.IsValid != null) entity.IsValid = upsert.IsValid.Value;
@@ -434,9 +434,34 @@ public class VpnController : CustomBaseController
     {
         if (!string.IsNullOrWhiteSpace(upsert.HostName)) entity.HostName = upsert.HostName;
         if (!string.IsNullOrWhiteSpace(upsert.Country)) entity.Country = upsert.Country;
-        if (!string.IsNullOrWhiteSpace(upsert.IspName)) entity.IspName = upsert.IspName;
+        if (!string.IsNullOrWhiteSpace(upsert.AsnOrg)) entity.AsnOrg = upsert.AsnOrg;
         if (!string.IsNullOrWhiteSpace(upsert.Ext1)) entity.Ext1 = upsert.Ext1;
         if (!string.IsNullOrWhiteSpace(upsert.Ext2)) entity.Ext2 = upsert.Ext2;
         if (upsert.IsValid != null) entity.IsValid = upsert.IsValid.Value;
+    }
+
+    /// <summary>
+    /// 根据 id 设置 asn_org
+    /// PUT /vpn/setAsnOrg/{id}
+    /// body: { "data": "Cloudflare, Inc." }
+    /// 空字符串视为清空
+    /// </summary>
+    [HttpPut("setAsnOrg/{id}")]
+    public async Task<IActionResult> SetAsnOrg(long id, [FromBody] JObject? body)
+    {
+        if (body == null) return BadRequest("body 不能为空");
+
+        var asnOrg = body.Value<string?>("data");
+        if (asnOrg == null) return BadRequest("data 必填");
+        if (asnOrg.Length > 256) return BadRequest("data 长度不能超过 256");
+
+        var entity = await _db.VpnInfos.FirstOrDefaultAsync(v => v.Id == id);
+        if (entity == null) return Ok(new ApiResponse { Ok = false, Message = "not found" });
+
+        entity.AsnOrg = string.IsNullOrEmpty(asnOrg) ? null : asnOrg;
+        entity.UpdateAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        _logger.LogInformation($"VpnList setAsnOrg id={id} asn_org={entity.AsnOrg}");
+        return Ok(new { ok = true, id = entity.Id, asn_org = entity.AsnOrg });
     }
 }
