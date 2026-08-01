@@ -15,6 +15,7 @@ public class VpnController : CustomBaseController
 {
     private readonly VpnDbContext _db;
     private readonly ILogger<VpnController> _logger;
+    private static readonly Random _rng = new();
 
     public VpnController(VpnDbContext db, ILogger<VpnController> logger)
     {
@@ -32,22 +33,136 @@ public class VpnController : CustomBaseController
     /// 查询
     /// a. host_name 模糊包含 / 模糊不包含
     /// b. isp_name 模糊包含
-    /// c. country 模糊包含（多个）
+    /// c. country 模糊包含（多个，逗号分隔）
     /// d. is_valid 默认 1
     /// </summary>
     [HttpPost("query")]
     public async Task<IActionResult> Query([FromBody] VpnInfoQuery? query)
     {
         query ??= new VpnInfoQuery();
-        if (query.IsValid == null) query.IsValid = 1;
+        return await ExecuteQueryAsync(query);
+    }
 
+    /// <summary>
+    /// GET 版查询，多 country 用英文逗号分隔：?country_contains=Japan,US,Singapore
+    /// </summary>
+    [HttpGet("query")]
+    public async Task<IActionResult> QueryGet(
+        [FromQuery(Name = "ip_contains")] string? ipContains,
+        [FromQuery(Name = "host_name_contains")] string? hostNameContains,
+        [FromQuery(Name = "host_name_not_contains")] string? hostNameNotContains,
+        [FromQuery(Name = "isp_name_contains")] string? ispNameContains,
+        [FromQuery(Name = "country_contains")] string? countryContains,
+        [FromQuery(Name = "country_not_contains")] string? countryNotContains,
+        [FromQuery(Name = "is_valid")] int? isValid,
+        [FromQuery(Name = "page")] int page = 1,
+        [FromQuery(Name = "size")] int size = 50)
+    {
+        var q = BindFromQuery(ipContains, hostNameContains, hostNameNotContains,
+            ispNameContains, countryContains, countryNotContains, isValid);
+        q.Page = page;
+        q.Size = size;
+        return await ExecuteQueryAsync(q);
+    }
+
+    private async Task<IActionResult> ExecuteQueryAsync(VpnInfoQuery query)
+    {
         var page = query.Page <= 0 ? 1 : query.Page;
-        var pageSize = query.PageSize <= 0 ? 50 : Math.Min(query.PageSize, 500);
+        var size = query.Size <= 0 ? 50 : Math.Min(query.Size, 500);
 
+        var all = await BuildQueryable(query).ToListAsync();
+        var total = all.Count;
+
+        var list = all
+            .OrderByDescending(v => v.UpdateAt)
+            .Skip((page - 1) * size)
+            .Take(size)
+            .ToList();
+
+        return Ok(new
+        {
+            ok = true,
+            total,
+            page,
+            size,
+            data = list
+        });
+    }
+
+    /// <summary>
+    /// 随机返回一条：先按 query 条件过滤到全集，再随机抽 1 条，不分页。
+    /// </summary>
+    [HttpGet("rnd")]
+    public async Task<IActionResult> RndGet(
+        [FromQuery(Name = "ip_contains")] string? ipContains,
+        [FromQuery(Name = "host_name_contains")] string? hostNameContains,
+        [FromQuery(Name = "host_name_not_contains")] string? hostNameNotContains,
+        [FromQuery(Name = "isp_name_contains")] string? ispNameContains,
+        [FromQuery(Name = "country_contains")] string? countryContains,
+        [FromQuery(Name = "country_not_contains")] string? countryNotContains,
+        [FromQuery(Name = "is_valid")] int? isValid)
+    {
+        var q = BindFromQuery(ipContains, hostNameContains, hostNameNotContains,
+            ispNameContains, countryContains, countryNotContains, isValid);
+
+        var pool = await BuildQueryable(q).ToListAsync();
+
+        if (pool.Count == 0)
+        {
+            return Ok(new
+            {
+                ok = true,
+                total = 0,
+                data = (VpnInfo?)null
+            });
+        }
+
+        var picked = pool[_rng.Next(pool.Count)];
+        return Ok(new
+        {
+            ok = true,
+            total = pool.Count,
+            data = picked
+        });
+    }
+
+    /// <summary>
+    /// 返回所有去重的 country 列表，不分页。
+    /// 默认只返回 valid=1；is_valid=-1 不过滤。
+    /// </summary>
+    [HttpGet("iso")]
+    public async Task<IActionResult> Iso(
+        [FromQuery(Name = "is_valid")] int? isValid)
+    {
+        var q = new VpnInfoQuery { IsValid = isValid ?? 1 };
+        var list = await BuildQueryable(q)
+            .Where(v => v.Country != null && v.Country != "")
+            .Select(v => v.Country!)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToListAsync();
+
+        return Ok(new
+        {
+            ok = true,
+            total = list.Count,
+            data = list
+        });
+    }
+
+    /// <summary>
+    /// 用 VpnInfoQuery 构造 IQueryable，过滤可在 DB 端下推的条件
+    /// （country 多值模糊因 EF 不能直接表达嵌套 Contains，留在内存过滤）
+    /// </summary>
+    private IQueryable<VpnInfo> BuildQueryable(VpnInfoQuery query)
+    {
         IQueryable<VpnInfo> q = _db.VpnInfos.AsNoTracking();
 
-        if (query.IsValid != null)
+        if (query.IsValid != -1)
             q = q.Where(v => v.IsValid == query.IsValid);
+
+        if (!string.IsNullOrEmpty(query.IpContains))
+            q = q.Where(v => v.Ip != null && v.Ip.Contains(query.IpContains));
 
         if (!string.IsNullOrEmpty(query.HostNameContains))
             q = q.Where(v => v.HostName != null && v.HostName.Contains(query.HostNameContains));
@@ -58,56 +173,65 @@ public class VpnController : CustomBaseController
         if (!string.IsNullOrEmpty(query.IspNameContains))
             q = q.Where(v => v.IspName != null && v.IspName.Contains(query.IspNameContains));
 
-        if (query.CountryContains != null && query.CountryContains.Count > 0)
+        // country 多值模糊：任一 country 关键字命中即匹配 (OR 语义)
+        var lowerCountries = (query.CountryContains ?? new List<string>())
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c.Trim().ToLower())
+            .ToList();
+        if (lowerCountries.Count > 0)
         {
-            var countries = query.CountryContains
-                .Where(c => !string.IsNullOrWhiteSpace(c))
-                .ToList();
-            if (countries.Count > 0)
-            {
-                // 多 country 模糊包含：任一 country 模糊命中即匹配
-                var lowerCountries = countries
-                    .Select(c => c.Trim().ToLower())
-                    .ToList();
-
-                var all = await q.ToListAsync();
-                var filtered = all
-                    .Where(v => v.Country != null
-                                && lowerCountries.Any(c => v.Country.ToLower().Contains(c)))
-                    .ToList();
-                var totalFiltered = filtered.Count;
-                var paged = filtered
-                    .OrderByDescending(v => v.UpdateAt)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToList();
-                return Ok(new
-                {
-                    ok = true,
-                    total = totalFiltered,
-                    page,
-                    page_size = pageSize,
-                    data = paged
-                });
-            }
+            q = q.Where(v => v.Country != null
+                && lowerCountries.Any(c => v.Country!.ToLower().Contains(c)));
         }
 
-        var total = await q.CountAsync();
-
-        var list = await q
-            .OrderByDescending(v => v.UpdateAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-
-        return Ok(new
+        // country 多值模糊不包含：任一关键字命中即排除 (NOT Any)
+        var lowerCountriesNot = (query.CountryNotContains ?? new List<string>())
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c.Trim().ToLower())
+            .ToList();
+        if (lowerCountriesNot.Count > 0)
         {
-            ok = true,
-            total,
-            page,
-            page_size = pageSize,
-            data = list
-        });
+            q = q.Where(v => v.Country == null
+                || !lowerCountriesNot.Any(c => v.Country!.ToLower().Contains(c)));
+        }
+
+        return q;
+    }
+
+    /// <summary>
+    /// GET 接口参数绑定：country_contains / country_not_contains 用逗号分隔字符串
+    /// is_valid: 不传 → 1（默认），传 -1 表示不过滤
+    /// </summary>
+    private static VpnInfoQuery BindFromQuery(
+        string? ipContains,
+        string? hostNameContains,
+        string? hostNameNotContains,
+        string? ispNameContains,
+        string? countryContains,
+        string? countryNotContains,
+        int? isValid)
+    {
+        var q = new VpnInfoQuery
+        {
+            IpContains = ipContains,
+            HostNameContains = hostNameContains,
+            HostNameNotContains = hostNameNotContains,
+            IspNameContains = ispNameContains,
+            IsValid = isValid ?? 1,
+        };
+        if (!string.IsNullOrWhiteSpace(countryContains))
+        {
+            q.CountryContains = countryContains
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList();
+        }
+        if (!string.IsNullOrWhiteSpace(countryNotContains))
+        {
+            q.CountryNotContains = countryNotContains
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList();
+        }
+        return q;
     }
 
     /// <summary>
@@ -256,32 +380,51 @@ public class VpnController : CustomBaseController
     }
 
     /// <summary>
-    /// 根据 id（支持多个）或 ip+port（支持多个）删除
+    /// 根据 id 设置 is_valid
+    /// PUT /vpn/setvalid/{id}/{isValid}
+    /// isValid: 0 或 1
     /// </summary>
-    [HttpPost("delete")]
-    public async Task<IActionResult> Delete([FromBody] VpnInfoDeleteRequest? req)
+    [HttpPut("setvalid/{id}/{isValid}")]
+    public async Task<IActionResult> SetValid(long id, int isValid)
     {
-        if (req == null) return BadRequest("body NULL");
-        var deleted = 0;
+        if (isValid != 0 && isValid != 1)
+            return BadRequest("isValid 只能为 0 或 1");
 
-        if (req.Ids != null && req.Ids.Count > 0)
-        {
-            deleted += await _db.VpnInfos
-                .Where(v => req.Ids.Contains(v.Id))
-                .ExecuteDeleteAsync();
-        }
+        var entity = await _db.VpnInfos.FirstOrDefaultAsync(v => v.Id == id);
+        if (entity == null) return Ok(new ApiResponse { Ok = false, Message = "not found" });
 
-        if (req.Items != null && req.Items.Count > 0)
-        {
-            foreach (var it in req.Items)
-            {
-                if (it == null || string.IsNullOrWhiteSpace(it.Ip) || string.IsNullOrWhiteSpace(it.Port))
-                    continue;
-                deleted += await _db.VpnInfos
-                    .Where(v => v.Ip == it.Ip && v.Port == it.Port)
-                    .ExecuteDeleteAsync();
-            }
-        }
+        entity.IsValid = isValid;
+        entity.UpdateAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        _logger.LogInformation($"VpnList setvalid id={id} is_valid={isValid}");
+        return Ok(new { ok = true, id = entity.Id, is_valid = entity.IsValid });
+    }
+
+    /// <summary>
+    /// 根据 id 删除（支持多个，英文逗号分隔）
+    /// DELETE /vpn/delete/{id}         — 单个
+    /// DELETE /vpn/delete/1,2,3        — 多个
+    /// </summary>
+    [HttpDelete("delete/{ids}")]
+    public async Task<IActionResult> Delete(string ids)
+    {
+        if (string.IsNullOrWhiteSpace(ids))
+            return BadRequest("ids 不能为空");
+
+        var idList = ids
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => long.TryParse(s, out var v) ? (long?)v : null)
+            .Where(v => v.HasValue)
+            .Select(v => v!.Value)
+            .Distinct()
+            .ToList();
+
+        if (idList.Count == 0)
+            return BadRequest("ids 解析失败");
+
+        var deleted = await _db.VpnInfos
+            .Where(v => idList.Contains(v.Id))
+            .ExecuteDeleteAsync();
 
         _logger.LogInformation($"VpnList delete count={deleted}");
         return Ok(new { ok = true, deleted });

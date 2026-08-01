@@ -54,10 +54,13 @@ try
     builder.Services.AddHttpClient();
 
     // SQLite + EFCore
-    var connStr = builder.Configuration.GetConnectionString("Default")
-                  ?? "Data Source=vpn_list.db";
+    // 优先使用环境变量 ConnectionStrings__Default，便于容器化部署
+    var connStr = Environment.GetEnvironmentVariable("ConnectionStrings__Default")
+                  ?? builder.Configuration.GetConnectionString("Default")
+                  ?? "Data Source=/data/vpn.db";
     builder.Services.AddDbContext<VpnDbContext>(opt =>
         opt.UseSqlite(connStr));
+    Console.WriteLine($"[VpnList] ConnectionString: {connStr}");
 
     builder.Configuration.AddEnvironmentVariables();
 
