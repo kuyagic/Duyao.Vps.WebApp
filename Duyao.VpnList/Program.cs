@@ -32,16 +32,19 @@ try
         {
             a.SingleLine = true;
             a.ColorBehavior = LoggerColorBehavior.Enabled;
+            a.TimestampFormat = "yyyy-MM-dd HH:mm:ss.fffzzz ";
         })
     );
 
     // 让 MVC 使用 Newtonsoft.Json 替代 System.Text.Json
+    // 数据库里 DateTime 始终是 UTC；返回时通过 UtcToLocalIsoDateTimeConverter 转成服务器本地时区
     builder.Services.AddControllers()
         .AddNewtonsoftJson(opt =>
         {
             opt.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
             opt.SerializerSettings.DateFormatString = "yyyy-MM-ddTHH:mm:ss.fffZ";
             opt.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+            opt.SerializerSettings.Converters.Add(new UtcToLocalIsoDateTimeConverter());
         });
 
     builder.Services.Configure<MvcNewtonsoftJsonOptions>(opt =>
@@ -49,6 +52,7 @@ try
         opt.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
         opt.SerializerSettings.DateFormatString = "yyyy-MM-ddTHH:mm:ss.fffZ";
         opt.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+        opt.SerializerSettings.Converters.Add(new UtcToLocalIsoDateTimeConverter());
     });
 
     builder.Services.AddHttpClient();
