@@ -663,6 +663,9 @@
   });
 
   const bUrl = '/vpn';
+  // 第三方 ASN 查询接口 base；完整 URL = LOOKUP_URL + '/<ip>'
+  // 默认同源相对路径，便于反代直接转发到 ip.net.coffee / 本地 5002
+  const LOOKUP_URL = '/api/ip';
   // 从 GET /vpn 拿 version message 作为页面/标题
   (async () => {
     try {
@@ -738,7 +741,14 @@
     { key: 'port',     label: 'Port',     raw: v => v.port ?? '',                                     html: v => escapeHtml(v.port) },
     { key: 'hostName', label: 'HostName', raw: v => v.hostName ?? v.host_name ?? '',                  html: v => escapeHtml(v.hostName ?? v.host_name) },
     { key: 'country',  label: 'Country',  raw: v => v.country ?? '',                                  html: v => escapeHtml(v.country) },
-    { key: 'asnOrg',   label: 'ASN Org',  raw: v => v.asnOrg ?? v.asn_org ?? '',                      html: v => escapeHtml(v.asnOrg ?? v.asn_org) },
+    { key: 'asnOrg',   label: 'ASN Org',  raw: v => v.asnOrg ?? v.asn_org ?? '',
+      html: v => {
+        const name = v.asnOrg ?? v.asn_org;
+        if (name) return escapeHtml(name);
+        const id = v.id ?? '';
+        const ip = v.ip ?? '';
+        return `<button type="button" class="row-icon" data-act="fetchAsnOrg" data-row-id="${escapeHtml(String(id))}" data-ip="${escapeHtml(ip)}" title="查询 ASN Org" aria-label="查询 ASN Org">🔍</button>`;
+      } },
     { key: 'ext1',     label: 'Ext1',     raw: v => v.ext1 ?? v.ext_1 ?? '',                          html: v => escapeHtml(v.ext1 ?? v.ext_1) },
     { key: 'ext2',     label: 'Ext2',     raw: v => v.ext2 ?? v.ext_2 ?? '',                          html: v => escapeHtml(v.ext2 ?? v.ext_2) },
     { key: 'valid',    label: 'Valid',    raw: v => (v.isValid ?? v.is_valid) == 1 ? 'valid' : 'invalid',
@@ -879,10 +889,10 @@
     const btn = e.target.closest('.row-icon');
     if (!btn) return;
     const actions = btn.closest('.row-actions');
-    if (!actions) return;
-    const id = actions.dataset.rowId;
-    const ip = (actions.dataset.ip ?? '').trim();
-    const port = (actions.dataset.port ?? '').trim();
+    // id 优先取自按钮自身（行内按钮），其次来自 .row-actions 容器
+    const id = (btn.dataset.rowId ?? actions?.dataset.rowId ?? '').toString();
+    const ip = (btn.dataset.ip ?? actions?.dataset.ip ?? '').toString().trim();
+    const port = (actions?.dataset.port ?? '').toString().trim();
     if (btn.dataset.act === 'copy') {
       if (!ip || !port) { toast('该行缺少 IP 或 Port', 'err'); return; }
       const text = `${ip}:${port}`;
@@ -908,6 +918,36 @@
           btn.classList.remove('ok-flash', 'err-flash');
           btn.textContent = orig;
         }, 1500);
+      } finally {
+        btn.disabled = false;
+      }
+    } else if (btn.dataset.act === 'fetchAsnOrg') {
+      const ip = (btn.dataset.ip ?? '').trim();
+      if (!id || !ip) { toast('该行缺少 ID 或 IP', 'err'); return; }
+      btn.disabled = true;
+      const orig = btn.textContent;
+      btn.textContent = '…';
+      try {
+        const lr = await fetch(`${LOOKUP_URL}/${encodeURIComponent(ip)}`);
+        const lj = await lr.json().catch(() => ({}));
+        const name = (lj && lj.organization && lj.organization.name) ? String(lj.organization.name).trim() : '';
+        if (!name) throw new Error('未取到 organization.name');
+        const pr = await fetch(`${bUrl}/setAsnOrg/${encodeURIComponent(id)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: name }),
+        });
+        const pj = await pr.json().catch(() => ({ ok: false }));
+        if (!pj.ok) throw new Error(pj.message || '写回失败');
+        // 只刷新这一行的 DOM + 内存数据
+        const td = btn.closest('td');
+        if (td) td.textContent = name;
+        const row = lastRows.find(v => String(v.id ?? '') === String(id));
+        if (row) { row.asnOrg = name; row.asn_org = name; }
+        toast(`已写入 ASN Org: ${name}`, 'ok');
+      } catch (err) {
+        toast(`查询 ASN Org 失败: ${err.message}`, 'err');
+        btn.textContent = orig;
       } finally {
         btn.disabled = false;
       }
@@ -979,8 +1019,16 @@
     $('#pg-jump').value = page;
   };
 
+  // 每次"主动新查询"（按钮/Enter）都强制回第 1 页；翻页时不重置
+  let resetPageOnNextSearch = false;
   const search = async () => {
     const body = buildBody();
+    if (resetPageOnNextSearch) {
+      body.page = 1;
+      const pageInput = $('input[name="page"]');
+      if (pageInput) pageInput.value = 1;
+      resetPageOnNextSearch = false;
+    }
     const rs = $('#result-stat');
     rs.textContent = '查询中…';
     try {
@@ -1003,7 +1051,7 @@
     }
   };
 
-  $('#btn-search').addEventListener('click', search);
+  $('#btn-search').addEventListener('click', () => { resetPageOnNextSearch = true; search(); });
   $('#btn-reset').addEventListener('click', () => {
     form.reset();
     countryInc.clear(); countryExc.clear();
@@ -1021,6 +1069,7 @@
   form.addEventListener('keydown', e => {
     if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
       e.preventDefault();
+      resetPageOnNextSearch = true;
       search();
     }
   });
