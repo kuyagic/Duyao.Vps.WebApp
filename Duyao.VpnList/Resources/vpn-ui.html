@@ -1,0 +1,1045 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>查询</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #181b22;
+    --panel-2: #1f232c;
+    --border: #2a2f3a;
+    --text: #e6e8ee;
+    --muted: #9aa3b2;
+    --accent: #4f8cff;
+    --accent-2: #7aa2ff;
+    --danger: #ff6b6b;
+    --ok: #2ecc71;
+    --chip: #2b3140;
+    --chip-active: #3b82f6;
+    --shadow: 0 8px 24px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --panel-2: #f0f2f7;
+      --border: #e3e6ee;
+      --text: #1a1d23;
+      --muted: #5b6473;
+      --chip: #eef1f7;
+      --chip-active: #2563eb;
+      --shadow: 0 6px 20px rgba(20,30,60,.08);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin-bottom: 20px; font-size: 13px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 18px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 14px 16px;
+  }
+  .col-3 { grid-column: span 3; }
+  .col-6 { grid-column: span 6; }
+  @media (max-width: 880px) {
+    .col-3, .col-6 { grid-column: span 12; }
+  }
+
+  label.field { display: block; }
+  label.field > .lbl {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: .2px;
+  }
+  .input, .select, textarea.input {
+    width: 100%;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .input:focus, .select:focus, textarea.input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,140,255,.18);
+  }
+
+  /* multi-select dropdown */
+  .ms { position: relative; }
+  .ms-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font: inherit;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+    text-align: left;
+  }
+  .ms-trigger:hover { border-color: var(--accent); }
+  .ms-trigger:focus,
+  .ms.open .ms-trigger {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,140,255,.18);
+  }
+  .ms-trigger .ms-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+  }
+  .ms-trigger .ms-label.has-val { color: var(--text); }
+  .ms-caret { color: var(--muted); font-size: 11px; transition: transform .15s; }
+  .ms.open .ms-caret { transform: rotate(180deg); }
+  .ms-panel {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 8px;
+    max-height: 320px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ms.open .ms-panel { display: flex; }
+  .ms-tools {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .ms-tools .ms-search { flex: 1; min-width: 0; padding: 5px 8px; font-size: 12px; }
+  .ms-list {
+    overflow: auto;
+    max-height: 240px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel-2);
+    padding: 4px;
+  }
+  .ms-opt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    user-select: none;
+  }
+  .ms-opt:hover { background: rgba(79,140,255,.10); }
+  .ms-opt input[type="checkbox"] { margin: 0; accent-color: var(--accent); }
+  .ms-opt.is-checked { color: var(--accent); font-weight: 500; }
+  .ms-opt.is-hidden { display: none; }
+  .ms-empty {
+    padding: 18px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .mini-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .mini-btn:hover { color: var(--text); border-color: var(--accent); background: var(--panel-2); }
+
+  /* radio segment */
+  .seg {
+    display: inline-flex;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .seg input { display: none; }
+  .seg label {
+    padding: 7px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--muted);
+    user-select: none;
+  }
+  .seg input:checked + label {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 16px;
+  }
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: 0;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background .15s, transform .05s;
+  }
+  .btn:hover { background: var(--accent-2); }
+  .btn:active { transform: translateY(1px); }
+  .btn.secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  .stat {
+    color: var(--muted);
+    font-size: 13px;
+    margin-left: auto;
+  }
+  .stat b { color: var(--text); }
+
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 14px;
+    font-size: 13px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  th {
+    font-weight: 600;
+    color: var(--muted);
+    background: var(--panel-2);
+    position: sticky;
+    top: 0;
+  }
+  tbody tr:hover { background: rgba(79,140,255,.06); }
+  td .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    background: var(--chip);
+    color: var(--text);
+  }
+  td .pill.ok { background: rgba(46,204,113,.15); color: var(--ok); }
+  td .pill.bad { background: rgba(255,107,107,.15); color: var(--danger); }
+
+  .pager {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .pager button {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .pager button:disabled { opacity: .4; cursor: not-allowed; }
+  .pager .page-info { color: var(--muted); font-size: 12px; margin: 0 8px; }
+
+  .table-wrap {
+    overflow: auto;
+    max-height: 60vh;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+  }
+
+  .table-tools {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 18px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .table-tools .ms { width: auto; }
+  .table-tools .ms-trigger { width: auto; min-width: 110px; }
+  .table-tools .ms-panel { min-width: 200px; }
+  .probe-stat {
+    color: var(--muted);
+    font-size: 12px;
+    margin-left: 4px;
+  }
+
+  /* 列显隐 */
+  th.col-hidden, td.col-hidden { display: none; }
+
+  /* 行操作图标按钮 */
+  .row-actions { display: inline-flex; gap: 4px; vertical-align: middle; }
+  .row-icon {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 5px;
+    width: 26px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .row-icon:hover { color: var(--text); border-color: var(--accent); background: var(--panel); }
+  .row-icon[disabled] { opacity: .5; cursor: not-allowed; }
+  .row-icon.ok-flash { color: var(--ok); border-color: var(--ok); }
+  .row-icon.err-flash { color: var(--danger); border-color: var(--danger); }
+
+  .toast {
+    position: absolute;
+    top: 100%; right: 0;
+    margin-top: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+    z-index: 1000;
+    max-width: 60vw;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.err { border-color: var(--danger); color: var(--danger); }
+  .toast.ok { border-color: var(--ok); color: var(--ok); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>查询</h1>
+  <!-- <div class="sub">对应 <code>POST /vpn/query</code> · 国家列表来自 <code>GET /vpn/iso</code></div> -->
+
+  <form class="panel" id="form" autocomplete="off" onsubmit="return false">
+    <div class="grid">
+      <div class="col-3">
+        <label class="field">
+          <span class="lbl">IP 包含</span>
+          <input class="input" name="ip_contains" placeholder="例如 1.2.3" />
+        </label>
+      </div>
+      <div class="col-3">
+        <label class="field">
+          <span class="lbl">HostName 包含</span>
+          <input class="input" name="host_name_contains" />
+        </label>
+      </div>
+      <div class="col-3">
+        <label class="field">
+          <span class="lbl">HostName 不包含</span>
+          <input class="input" name="host_name_not_contains" />
+        </label>
+      </div>
+      <div class="col-3">
+        <label class="field">
+          <span class="lbl">ASN Org 包含 (逗号分隔多值)</span>
+          <input class="input" name="asn_org_contains" placeholder="Cloudflare,Google" />
+        </label>
+      </div>
+
+      <div class="col-6">
+        <label class="field">
+          <span class="lbl">Country 包含</span>
+          <div class="ms" data-ms="countryInc" id="ms-countryInc">
+            <button type="button" class="ms-trigger" aria-haspopup="listbox" aria-expanded="false">
+              <span class="ms-label">未选择</span>
+              <span class="ms-caret" aria-hidden="true">▾</span>
+            </button>
+            <div class="ms-panel" role="listbox" hidden>
+              <div class="ms-tools">
+                <input class="input ms-search" type="search" placeholder="搜索国家…" />
+                <button type="button" class="mini-btn ms-act" data-act="all">全选</button>
+                <button type="button" class="mini-btn ms-act" data-act="none">清空</button>
+                <button type="button" class="mini-btn ms-act" data-act="invert">反选</button>
+              </div>
+              <div class="ms-list"></div>
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <div class="col-6">
+        <label class="field">
+          <span class="lbl">Country 不包含 (多选)</span>
+          <div class="ms" data-ms="countryExc" id="ms-countryExc">
+            <button type="button" class="ms-trigger" aria-haspopup="listbox" aria-expanded="false">
+              <span class="ms-label">未选择</span>
+              <span class="ms-caret" aria-hidden="true">▾</span>
+            </button>
+            <div class="ms-panel" role="listbox" hidden>
+              <div class="ms-tools">
+                <input class="input ms-search" type="search" placeholder="搜索国家…" />
+                <button type="button" class="mini-btn ms-act" data-act="all">全选</button>
+                <button type="button" class="mini-btn ms-act" data-act="none">清空</button>
+                <button type="button" class="mini-btn ms-act" data-act="invert">反选</button>
+              </div>
+              <div class="ms-list"></div>
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <div class="col-3">
+        <label class="field">
+          <span class="lbl">有效性</span>
+          <div class="seg" id="is-valid-seg">
+            <input type="radio" id="iv1" name="is_valid" value="1" checked />
+            <label for="iv1">有效</label>
+            <input type="radio" id="iv0" name="is_valid" value="0" />
+            <label for="iv0">失效</label>
+            <input type="radio" id="iv-1" name="is_valid" value="-1" />
+            <label for="iv-1">全部</label>
+          </div>
+        </label>
+      </div>
+      <div class="col-3">
+        <label class="field">
+          <span class="lbl">每页条数 (size)</span>
+          <input class="input" type="number" name="size" min="1" max="50" value="8" />
+        </label>
+      </div>
+      <div class="col-3">
+        <label class="field">
+          <span class="lbl">页码 (page)</span>
+          <input class="input" type="number" name="page" min="1" value="1" />
+        </label>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn" id="btn-search">查询</button>
+      <button type="button" class="btn secondary" id="btn-reset">重置</button>
+    </div>
+  </form>
+
+  <div class="table-tools" id="table-tools" style="display:none">
+    <div class="ms" id="ms-cols">
+      <button type="button" class="ms-trigger" aria-haspopup="listbox" aria-expanded="false">
+        <span class="ms-label">列设置</span>
+        <span class="ms-caret" aria-hidden="true">▾</span>
+      </button>
+      <div class="ms-panel" role="listbox" hidden>
+        <div class="ms-tools">
+          <button type="button" class="mini-btn ms-col-act" data-col-act="all">全选</button>
+          <button type="button" class="mini-btn ms-col-act" data-col-act="none">清空</button>
+          <button type="button" class="mini-btn ms-col-act" data-col-act="invert">反选</button>
+        </div>
+        <div class="ms-list" id="cols-list"></div>
+      </div>
+    </div>
+    <span class="probe-stat" id="probe-stat"></span>
+    <span class="stat" id="result-stat" style="margin-left:auto"></span>
+    <div class="pager" id="pager">
+      <button id="pg-first">« 首页</button>
+      <button id="pg-prev">‹ 上一页</button>
+      <span class="page-info" id="pg-info">—</span>
+      <button id="pg-next">下一页 ›</button>
+      <button id="pg-last">末页 »</button>
+      <input class="input" id="pg-jump" type="number" min="1" value="1"
+             style="width:80px;margin-left:10px" />
+      <button id="pg-go">跳转</button>
+    </div>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <div class="table-wrap" id="result-wrap" style="display:none; margin-top:18px">
+    <table>
+      <colgroup id="colgroup"></colgroup>
+      <thead>
+        <tr id="thead-row"></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const toast = (msg, kind = '') => {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + kind;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => t.className = 'toast', 2200);
+  };
+
+  // ---------- 多选下拉 ----------
+  const countryInc = new Set();
+  const countryExc = new Set();
+  let allCountries = [];
+
+  // 每个 ms 实例：根、触发器、面板、列表容器、关联的 Set
+  const msInstances = [];
+
+  const buildMultiSelect = (root, selected) => {
+    const trigger = $('.ms-trigger', root);
+    const panel = $('.ms-panel', root);
+    const list = $('.ms-list', root);
+    const search = $('.ms-search', root);
+    const label = $('.ms-label', trigger);
+
+    const renderLabel = () => {
+      const n = selected.size;
+      if (n === 0) {
+        label.textContent = '未选择';
+        label.classList.remove('has-val');
+      } else if (n <= 3) {
+        label.textContent = Array.from(selected).join('、');
+        label.classList.add('has-val');
+      } else {
+        label.textContent = `已选 ${n} 项`;
+        label.classList.add('has-val');
+      }
+    };
+
+    const renderList = (filter = '') => {
+      const f = filter.trim().toLowerCase();
+      const visible = [];
+      list.innerHTML = '';
+      allCountries.forEach(c => {
+        const opt = document.createElement('label');
+        opt.className = 'ms-opt';
+        if (selected.has(c)) opt.classList.add('is-checked');
+        if (f && !c.toLowerCase().includes(f)) opt.classList.add('is-hidden');
+        else visible.push(c);
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = selected.has(c);
+        cb.addEventListener('change', () => {
+          if (cb.checked) selected.add(c); else selected.delete(c);
+          opt.classList.toggle('is-checked', cb.checked);
+          renderLabel();
+        });
+        const span = document.createElement('span');
+        span.textContent = c;
+        opt.appendChild(cb);
+        opt.appendChild(span);
+        list.appendChild(opt);
+      });
+      if (visible.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'ms-empty';
+        empty.textContent = '无匹配项';
+        list.appendChild(empty);
+      }
+    };
+
+    const open = () => {
+      $$('.ms.open').forEach(el => { if (el !== root) el.classList.remove('open'); });
+      root.classList.add('open');
+      panel.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      search.value = '';
+      renderList('');
+      requestAnimationFrame(() => search.focus());
+    };
+    const close = () => {
+      root.classList.remove('open');
+      panel.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    };
+    const toggle = () => (root.classList.contains('open') ? close() : open());
+
+    trigger.addEventListener('click', e => { e.stopPropagation(); toggle(); });
+    panel.addEventListener('click', e => e.stopPropagation());
+
+    search.addEventListener('input', () => renderList(search.value));
+    search.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { close(); trigger.focus(); }
+      if (e.key === 'Enter') { e.preventDefault(); }
+    });
+
+    $$('.ms-act', panel).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const act = btn.dataset.act;
+        const opts = $$('.ms-opt', list);
+        if (act === 'all') {
+          opts.forEach(o => {
+            if (o.classList.contains('is-hidden')) return;
+            const cb = $('input', o);
+            if (!cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); }
+          });
+        } else if (act === 'none') {
+          opts.forEach(o => {
+            if (o.classList.contains('is-hidden')) return;
+            const cb = $('input', o);
+            if (cb.checked) { cb.checked = false; cb.dispatchEvent(new Event('change')); }
+          });
+        } else if (act === 'invert') {
+          opts.forEach(o => {
+            if (o.classList.contains('is-hidden')) return;
+            const cb = $('input', o);
+            cb.checked = !cb.checked;
+            cb.dispatchEvent(new Event('change'));
+          });
+        }
+      });
+    });
+
+    // 暴露给外层使用
+    return { open, close, renderLabel, renderList, root, selected };
+  };
+
+  const closeAllMs = (except) => {
+    msInstances.forEach(m => { if (m !== except) m.close(); });
+  };
+
+  // 点击外部关闭 (ms 下拉)
+  document.addEventListener('click', e => {
+    const openMs = $$('.ms.open');
+    if (openMs.length > 0) {
+      if (!openMs.some(m => m.contains(e.target))) {
+        openMs.forEach(m => m.classList.remove('open'));
+        $$('.ms-panel').forEach(p => p.hidden = true);
+        $$('.ms-trigger').forEach(t => t.setAttribute('aria-expanded', 'false'));
+      }
+    }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      $$('.ms.open').forEach(m => m.classList.remove('open'));
+      $$('.ms-panel').forEach(p => p.hidden = true);
+      $$('.ms-trigger').forEach(t => t.setAttribute('aria-expanded', 'false'));
+    }
+  });
+
+  const bUrl = '/vpn';
+  // 从 GET /vpn 拿 version message 作为页面/标题
+  (async () => {
+    try {
+      const r = await fetch(bUrl + '/');
+      const j = await r.json();
+      const msg = j && j.message ? String(j.message) : '';
+      if (msg) {
+        document.title = msg;
+        const h1 = document.querySelector('h1');
+        if (h1) h1.textContent = msg;
+      }
+    } catch (e) {
+      // 静默失败，保留默认标题
+    }
+  })();
+  const loadCountries = async () => {
+    try {
+      const r = await fetch(bUrl + '/iso?is_valid=1');
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.message || '加载国家失败');
+      allCountries = (j.data || []).filter(Boolean).sort((a, b) => a.localeCompare(b));
+      msInstances.forEach(m => { m.renderList(''); m.renderLabel(); });
+    } catch (e) {
+      toast('加载国家列表失败: ' + e.message, 'err');
+    }
+  };
+
+  // 初始化两个下拉
+  msInstances.push(buildMultiSelect($('#ms-countryInc'), countryInc));
+  msInstances.push(buildMultiSelect($('#ms-countryExc'), countryExc));
+
+  // ---------- 查询 ----------
+  const form = $('#form');
+  const buildBody = () => {
+    const fd = new FormData(form);
+    const splitMulti = (raw) => (raw ?? '')
+      .toString()
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    const asnArr = Array.from(new Set(splitMulti(fd.get('asn_org_contains'))));
+    const body = {
+      ip_contains: fd.get('ip_contains')?.toString().trim() || undefined,
+      host_name_contains: fd.get('host_name_contains')?.toString().trim() || undefined,
+      host_name_not_contains: fd.get('host_name_not_contains')?.toString().trim() || undefined,
+      asn_org_contains: asnArr.length > 0 ? asnArr : undefined,
+      is_valid: parseInt(fd.get('is_valid') || '1', 10),
+      page: Math.max(1, parseInt(fd.get('page') || '1', 10)),
+      size: Math.min(500, Math.max(1, parseInt(fd.get('size') || '50', 10))),
+    };
+    if (countryInc.size > 0) body.country_contains = Array.from(countryInc);
+    if (countryExc.size > 0) body.country_not_contains = Array.from(countryExc);
+    Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
+    return body;
+  };
+
+  const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g,
+    c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const pad2 = n => String(n).padStart(2, '0');
+  const fmtDateTime = (s) => {
+    if (!s) return '';
+    const d = (s instanceof Date) ? s : new Date(s);
+    if (isNaN(d.getTime())) return String(s);
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ` +
+           `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  };
+
+  // ---------- 结果表格列定义 ----------
+  const COLUMNS = [
+    { key: 'id',       label: 'ID',       raw: v => v.id ?? '',                                       html: v => String(v.id ?? '') },
+    { key: 'ip',       label: 'IP',       raw: v => v.ip ?? '',                                       html: v => `<code>${escapeHtml(v.ip)}</code>` },
+    { key: 'port',     label: 'Port',     raw: v => v.port ?? '',                                     html: v => escapeHtml(v.port) },
+    { key: 'hostName', label: 'HostName', raw: v => v.hostName ?? v.host_name ?? '',                  html: v => escapeHtml(v.hostName ?? v.host_name) },
+    { key: 'country',  label: 'Country',  raw: v => v.country ?? '',                                  html: v => escapeHtml(v.country) },
+    { key: 'asnOrg',   label: 'ASN Org',  raw: v => v.asnOrg ?? v.asn_org ?? '',                      html: v => escapeHtml(v.asnOrg ?? v.asn_org) },
+    { key: 'ext1',     label: 'Ext1',     raw: v => v.ext1 ?? v.ext_1 ?? '',                          html: v => escapeHtml(v.ext1 ?? v.ext_1) },
+    { key: 'ext2',     label: 'Ext2',     raw: v => v.ext2 ?? v.ext_2 ?? '',                          html: v => escapeHtml(v.ext2 ?? v.ext_2) },
+    { key: 'valid',    label: 'Valid',    raw: v => (v.isValid ?? v.is_valid) == 1 ? 'valid' : 'invalid',
+      html: v => ((v.isValid ?? v.is_valid) == 1
+        ? '<span class="pill ok">valid</span>'
+        : '<span class="pill bad">invalid</span>') },
+    { key: 'update',   label: 'Update',   raw: v => v.updateAt ?? v.update_at ?? '',                  html: v => escapeHtml(fmtDateTime(v.updateAt ?? v.update_at ?? '')) },
+  ];
+  const COL_KEYS = COLUMNS.map(c => c.key);
+  const COLS_LS_KEY = 'vpn.cols.visible';
+
+  const loadVisibleCols = () => {
+    try {
+      const raw = localStorage.getItem(COLS_LS_KEY);
+      if (!raw) return new Set(COL_KEYS);
+      const arr = JSON.parse(raw);
+      const s = new Set(Array.isArray(arr) ? arr.filter(k => COL_KEYS.includes(k)) : []);
+      if (s.size === 0) return new Set(COL_KEYS);
+      return s;
+    } catch { return new Set(COL_KEYS); }
+  };
+  const saveVisibleCols = (s) => {
+    try { localStorage.setItem(COLS_LS_KEY, JSON.stringify(Array.from(s))); } catch {}
+  };
+  let visibleCols = loadVisibleCols();
+  let lastRows = [];
+
+  const renderThead = () => {
+    const fixed = '<th class="col-fixed" style="width:64px">操作</th>';
+    const rest = COLUMNS
+      .map(c => `<th data-col="${c.key}" class="${visibleCols.has(c.key) ? '' : 'col-hidden'}">${c.label}</th>`)
+      .join('');
+    $('#thead-row').innerHTML = fixed + rest;
+  };
+  const applyColVisibility = () => {
+    $$('#thead-row th[data-col]').forEach(th => {
+      th.classList.toggle('col-hidden', !visibleCols.has(th.dataset.col));
+    });
+    $$('#tbody tr').forEach(tr => {
+      $$('td[data-col]', tr).forEach(td => {
+        td.classList.toggle('col-hidden', !visibleCols.has(td.dataset.col));
+      });
+    });
+  };
+  const visibleColCount = () => visibleCols.size;
+
+  const renderRow = (v) => {
+    const id = v.id ?? '';
+    const ip = v.ip ?? '';
+    const port = v.port ?? '';
+    const fixed = `<td class="col-fixed"><span class="row-actions" data-row-id="${escapeHtml(String(id))}" data-ip="${escapeHtml(ip)}" data-port="${escapeHtml(port)}">
+      <button type="button" class="row-icon" data-act="copy" title="复制 IP:Port" aria-label="复制 IP:Port">⧉</button>
+      <button type="button" class="row-icon" data-act="probe" title="探测" aria-label="探测">↻</button>
+    </span></td>`;
+    const rest = COLUMNS.map(c =>
+      `<td data-col="${c.key}" class="${visibleCols.has(c.key) ? '' : 'col-hidden'}">${c.html(v)}</td>`
+    ).join('');
+    return '<tr>' + fixed + rest + '</tr>';
+  };
+
+  const renderRows = (rows) => {
+    lastRows = rows || [];
+    const tbody = $('#tbody');
+    if (lastRows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="${COL_KEYS.length + 1}" style="text-align:center;color:var(--muted);padding:30px">无数据</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = lastRows.map(renderRow).join('');
+  };
+
+  // ---------- 单行复制 / 探测 ----------
+  const writeClipboard = async (text) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  };
+
+  const probeVpn = async (id) => {
+    const stat = $('#probe-stat');
+    const prev = stat.textContent;
+    stat.textContent = `探测 id=${id} 中…`;
+    let result = { ok: false, message: 'unknown' };
+    try {
+      const r = await fetch(`${bUrl}/probe/${encodeURIComponent(id)}`);
+      const j = await r.json().catch(() => ({ ok: false, message: '响应解析失败' }));
+      if (j.ok) {
+        const detail = j.data ? ` · ${j.data}` : '';
+        toast(`探测成功 (id=${id})${detail}`, 'ok');
+        stat.textContent = `id=${id} ✓ ${detail}`.trim();
+        result = { ok: true, message: detail };
+      } else {
+        const msg = j.message ? ` · ${j.message}` : '';
+        toast(`探测失败 (id=${id})${msg}，标记为失效`, 'err');
+        stat.textContent = `id=${id} ✗ 已标记失效`;
+        result = { ok: false, message: j.message || '' };
+        await markInvalid(id);
+      }
+    } catch (err) {
+      toast(`探测失败: ${err.message}，标记为失效`, 'err');
+      stat.textContent = `id=${id} ✗ 错误`;
+      result = { ok: false, message: err.message || '' };
+      await markInvalid(id);
+    } finally {
+      clearTimeout(probeVpn._t);
+      probeVpn._t = setTimeout(() => { stat.textContent = prev; }, 4000);
+    }
+    return result;
+  };
+
+  const markInvalid = async (id) => {
+    try {
+      const r = await fetch(`${bUrl}/setvalid/${encodeURIComponent(id)}/0`, { method: 'PUT' });
+      const j = await r.json().catch(() => ({ ok: false }));
+      if (!j.ok) {
+        toast(`标记失效失败 (id=${id})`, 'err');
+        return;
+      }
+    } catch (err) {
+      toast(`标记失效请求失败: ${err.message}`, 'err');
+      return;
+    }
+    const tr = $('#tbody').querySelector(`tr .row-actions[data-row-id="${CSS.escape(String(id))}"]`)?.closest('tr');
+    if (tr) {
+      const td = tr.querySelector('td[data-col="valid"]');
+      if (td) td.innerHTML = '<span class="pill bad">invalid</span>';
+    }
+    const row = lastRows.find(v => String(v.id ?? '') === String(id));
+    if (row) { row.isValid = 0; row.is_valid = 0; }
+  };
+
+  $('#tbody').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.row-icon');
+    if (!btn) return;
+    const actions = btn.closest('.row-actions');
+    if (!actions) return;
+    const id = actions.dataset.rowId;
+    const ip = (actions.dataset.ip ?? '').trim();
+    const port = (actions.dataset.port ?? '').trim();
+    if (btn.dataset.act === 'copy') {
+      if (!ip || !port) { toast('该行缺少 IP 或 Port', 'err'); return; }
+      const text = `${ip}:${port}`;
+      try {
+        await writeClipboard(text);
+        toast(`已复制 ${text}`, 'ok');
+        const orig = btn.textContent;
+        btn.classList.add('ok-flash');
+        btn.textContent = '✓';
+        setTimeout(() => { btn.classList.remove('ok-flash'); btn.textContent = orig; }, 1200);
+      } catch (err) {
+        toast('复制失败: ' + err.message, 'err');
+      }
+    } else if (btn.dataset.act === 'probe') {
+      if (!id) { toast('该行缺少 ID', 'err'); return; }
+      btn.disabled = true;
+      const orig = btn.textContent;
+      try {
+        const res = await probeVpn(id);
+        btn.classList.add(res.ok ? 'ok-flash' : 'err-flash');
+        btn.textContent = res.ok ? '✓' : '✗';
+        setTimeout(() => {
+          btn.classList.remove('ok-flash', 'err-flash');
+          btn.textContent = orig;
+        }, 1500);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  });
+
+  renderThead();
+  renderRows([]);
+
+  // ---------- 列设置下拉 ----------
+  const buildColList = () => {
+    const list = $('#cols-list');
+    list.innerHTML = COLUMNS.map(c => {
+      const checked = visibleCols.has(c.key);
+      return `<label class="ms-opt ${checked ? 'is-checked' : ''}">
+        <input type="checkbox" data-col-key="${c.key}" ${checked ? 'checked' : ''}>
+        <span>${c.label}</span>
+      </label>`;
+    }).join('');
+    list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const k = cb.dataset.colKey;
+        if (cb.checked) visibleCols.add(k); else visibleCols.delete(k);
+        cb.parentElement.classList.toggle('is-checked', cb.checked);
+        saveVisibleCols(visibleCols);
+        applyColVisibility();
+      });
+    });
+  };
+  buildColList();
+  const colMsRoot = $('#ms-cols');
+  const colTrigger = $('.ms-trigger', colMsRoot);
+  const colPanel = $('.ms-panel', colMsRoot);
+  const openCols = () => {
+    $$('.ms.open').forEach(el => { if (el !== colMsRoot) el.classList.remove('open'); });
+    colMsRoot.classList.add('open');
+    colPanel.hidden = false;
+    colTrigger.setAttribute('aria-expanded', 'true');
+  };
+  const closeCols = () => {
+    colMsRoot.classList.remove('open');
+    colPanel.hidden = true;
+    colTrigger.setAttribute('aria-expanded', 'false');
+  };
+  colTrigger.addEventListener('click', e => {
+    e.stopPropagation();
+    colMsRoot.classList.contains('open') ? closeCols() : openCols();
+  });
+  colPanel.addEventListener('click', e => e.stopPropagation());
+  $$('.ms-col-act', colPanel).forEach(btn => {
+    btn.addEventListener('click', () => {
+      const act = btn.dataset.colAct;
+      const cbs = $$('input[type="checkbox"]', colPanel);
+      if (act === 'all') cbs.forEach(cb => { if (!cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); } });
+      else if (act === 'none') cbs.forEach(cb => { if (cb.checked) { cb.checked = false; cb.dispatchEvent(new Event('change')); } });
+      else if (act === 'invert') cbs.forEach(cb => { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); });
+    });
+  });
+
+  let lastTotal = 0;
+  const setPager = (page, size, total) => {
+    const last = Math.max(1, Math.ceil(total / size));
+    $('#pg-info').textContent = `第 ${page} / ${last} 页 · 共 ${total} 条 · 每页 ${size}`;
+    $('#pg-first').disabled = page <= 1;
+    $('#pg-prev').disabled = page <= 1;
+    $('#pg-next').disabled = page >= last;
+    $('#pg-last').disabled = page >= last;
+    $('#pg-jump').max = last;
+    $('#pg-jump').value = page;
+  };
+
+  const search = async () => {
+    const body = buildBody();
+    const rs = $('#result-stat');
+    rs.textContent = '查询中…';
+    try {
+      const r = await fetch(bUrl + '/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.message || '查询失败');
+      lastTotal = j.total || 0;
+      renderRows(j.data || []);
+      $('#result-wrap').style.display = 'block';
+      $('#table-tools').style.display = 'flex';
+      setPager(body.page, body.size, lastTotal);
+      rs.innerHTML = `共 <b>${lastTotal}</b> 条 · 第 <b>${body.page}</b> 页`;
+    } catch (e) {
+      toast(e.message, 'err');
+      rs.textContent = '查询失败';
+    }
+  };
+
+  $('#btn-search').addEventListener('click', search);
+  $('#btn-reset').addEventListener('click', () => {
+    form.reset();
+    countryInc.clear(); countryExc.clear();
+    msInstances.forEach(m => {
+      $$('input[type="checkbox"]', m.root).forEach(cb => { cb.checked = false; });
+      $$('.ms-opt', m.root).forEach(o => o.classList.remove('is-checked'));
+      m.renderLabel();
+    });
+    $('#result-wrap').style.display = 'none';
+    $('#table-tools').style.display = 'none';
+    $('#result-stat').textContent = '';
+    $('#probe-stat').textContent = '';
+  });
+
+  form.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+      e.preventDefault();
+      search();
+    }
+  });
+
+  const goto = (p) => {
+    $('input[name="page"]').value = Math.max(1, p);
+    search();
+  };
+  $('#pg-first').onclick = () => goto(1);
+  $('#pg-prev').onclick = () => goto((parseInt($('input[name="page"]').value, 10) || 1) - 1);
+  $('#pg-next').onclick = () => goto((parseInt($('input[name="page"]').value, 10) || 1) + 1);
+  $('#pg-last').onclick = () => {
+    const size = parseInt($('input[name="size"]').value, 10) || 50;
+    goto(Math.max(1, Math.ceil(lastTotal / size)));
+  };
+  $('#pg-go').onclick = () => goto(parseInt($('#pg-jump').value, 10) || 1);
+
+  loadCountries();
+})();
+</script>
+</body>
+</html>

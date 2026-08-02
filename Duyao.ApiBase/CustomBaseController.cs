@@ -41,7 +41,7 @@ public class CustomBaseController : ControllerBase
         var verString = string.Format(BuildInfo.BuildTime, appName, version);
         return Task.FromResult<IActionResult>(Ok(new ApiResponse
         {
-            Message = $"{verString} is running"
+            Message = $"{verString}"
         }));
     }
 }

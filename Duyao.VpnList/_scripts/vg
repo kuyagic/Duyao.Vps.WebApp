@@ -8,7 +8,7 @@ compact JSON one entry per line so the output is pipeable to `vg jq`
 
 Subcommands:
     v|version                       GET  /vpn            show service version
-    get  [country,...] [ip= S] [hn= S] [hx= S] [asn= S]
+    get  [country,...] [ip= S] [hn= S] [hx= S] [cx= S] [asn= S]
          [--page N --size N --all --all-cn]
                                      GET  /vpn/query     list entries (default)
     one  [country,...] [ip= S ...]  GET  /vpn/rnd       pick one random entry
@@ -24,7 +24,7 @@ Subcommands:
 
 Filters:
     - Positional args are joined with ',' as country_contains (OR).
-    - ip=S, hn=S, hx=S, asn=S set the matching _contains / _not_contains filter.
+    - ip=S, hn=S, hx=S, cx=S, asn=S set the matching _contains / _not_contains filter.
     - By default China is excluded; pass --all-cn to include it.
     - --page N / --size N control pagination; --all walks every page.
     - --iso-all makes `iso` return is_valid=-1 (no validity filter).
@@ -45,7 +45,7 @@ vg - VPN query CLI for Duyao.VpnList (query-only)
 
 Subcommands:
   v|version                       GET  /vpn            show service version
-  get  [country,...] [ip=S] [hn=S] [hx=S] [asn=S]
+  get  [country,...] [ip=S] [hn=S] [hx=S] [cx=S] [asn=S]
        [--page N --size N --all --all-cn]
                                    GET  /vpn/query     list entries (default)
   one  [country,...] [ip=S ...]    GET  /vpn/rnd       pick one random entry
@@ -61,7 +61,7 @@ Subcommands:
 
 Filters:
   - Positional args are joined with ',' as country_contains (OR).
-  - ip=S, hn=S, hx=S, asn=S set the matching _contains / _not_contains filter.
+  - ip=S, hn=S, hx=S, cx=S, asn=S set the matching _contains / _not_contains filter.
   - By default China is excluded; pass --all-cn to include it.
   - --page N / --size N control pagination; --all walks every page.
   - --iso-all makes `iso` return is_valid=-1 (no validity filter).
@@ -117,6 +117,7 @@ def _curl(cmd: list[str]) -> str:
 def parse_filter_args_full(argv: list[str]):
     """Same as parse_filter_args but also returns the state dict."""
     filters: dict[str, str] = {}
+    cx_user: list[str] = []
     positional: list[str] = []
     state = {
         "nc": "China",
@@ -158,6 +159,8 @@ def parse_filter_args_full(argv: list[str]):
             filters["host_name_contains"] = a[3:]
         elif a.startswith("hx="):
             filters["host_name_not_contains"] = a[3:]
+        elif a.startswith("cx="):
+            cx_user.append(a[3:])
         elif a.startswith("asn="):
             filters["asn_org_contains"] = a[4:]
         elif a.startswith("-"):
@@ -165,6 +168,17 @@ def parse_filter_args_full(argv: list[str]):
         else:
             positional.append(a)
         i += 1
+    if cx_user:
+        # cx= always implies excluding China too, regardless of --all-cn.
+        seen: set[str] = set()
+        out_parts: list[str] = []
+        for part in (",".join(cx_user) + ",China").split(","):
+            p = part.strip()
+            if not p or p in seen:
+                continue
+            seen.add(p)
+            out_parts.append(p)
+        state["nc"] = ",".join(out_parts)
     return filters, positional, state
 
 

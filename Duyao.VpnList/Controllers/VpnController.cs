@@ -1,4 +1,5 @@
-﻿using Duyao.ApiBase;
+﻿using System.Net.Sockets;
+using Duyao.ApiBase;
 using Duyao.TelegramFile.Entity;
 using Duyao.VpnList.Data;
 using Duyao.VpnList.Entity;
@@ -16,6 +17,7 @@ public class VpnController : CustomBaseController
     private readonly VpnDbContext _db;
     private readonly ILogger<VpnController> _logger;
     private static readonly Random _rng = new();
+    private static readonly string _uiHtml = LoadEmbeddedUiHtml();
 
     public VpnController(VpnDbContext db, ILogger<VpnController> logger)
     {
@@ -27,6 +29,33 @@ public class VpnController : CustomBaseController
     public Task<IActionResult> VpnVersion()
     {
         return GetVersion("VpnList");
+    }
+
+    /// <summary>
+    /// 内嵌的查询 UI 页面 (Resources/vpn-ui.html)
+    /// GET /vpn/ui
+    /// </summary>
+    [HttpGet("ui")]
+    public IActionResult Ui()
+    {
+        return Content(_uiHtml, "text/html; charset=utf-8");
+    }
+
+    private static string LoadEmbeddedUiHtml()
+    {
+        var asm = typeof(VpnController).Assembly;
+        const string name = "Duyao.VpnList.Resources.vpn-ui.html";
+        using var stream = asm.GetManifestResourceStream(name);
+        if (stream == null)
+        {
+            // 兜底：列出实际可用的资源名便于排错
+            var available = string.Join(", ",
+                asm.GetManifestResourceNames());
+            throw new InvalidOperationException(
+                $"找不到内嵌资源 {name}，可用资源: {available}");
+        }
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 
     /// <summary>
@@ -170,11 +199,16 @@ public class VpnController : CustomBaseController
         if (!string.IsNullOrEmpty(query.HostNameNotContains))
             q = q.Where(v => v.HostName == null || !v.HostName.Contains(query.HostNameNotContains));
 
-        if (!string.IsNullOrEmpty(query.AsnOrgContains))
-            q = q.Where(v => v.AsnOrg != null && 
-                             v.AsnOrg.ToLower()
-                                 .Contains(query.AsnOrgContains.ToLower())
-                             );
+        // asn_org 多值模糊：任一关键字命中即匹配 (OR 语义)，大小写不敏感
+        var lowerAsnOrgs = (query.AsnOrgContains ?? new List<string>())
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c.Trim().ToLower())
+            .ToList();
+        if (lowerAsnOrgs.Count > 0)
+        {
+            q = q.Where(v => v.AsnOrg != null
+                && lowerAsnOrgs.Any(c => v.AsnOrg!.ToLower().Contains(c)));
+        }
 
         // country 多值模糊：任一 country 关键字命中即匹配 (OR 语义)
         var lowerCountries = (query.CountryContains ?? new List<string>())
@@ -219,9 +253,14 @@ public class VpnController : CustomBaseController
             IpContains = ipContains,
             HostNameContains = hostNameContains,
             HostNameNotContains = hostNameNotContains,
-            AsnOrgContains = asnOrgContains?.ToLower(),
             IsValid = isValid ?? 1,
         };
+        if (!string.IsNullOrWhiteSpace(asnOrgContains))
+        {
+            q.AsnOrgContains = asnOrgContains
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList();
+        }
         if (!string.IsNullOrWhiteSpace(countryContains))
         {
             q.CountryContains = countryContains
@@ -466,5 +505,32 @@ public class VpnController : CustomBaseController
         await _db.SaveChangesAsync();
         _logger.LogInformation($"VpnList setAsnOrg id={id} asn_org={entity.AsnOrg}");
         return Ok(new { ok = true, id = entity.Id, asn_org = entity.AsnOrg });
+    }
+
+    [HttpGet("probe/{id}")]
+    public async Task<IActionResult> Probe(long id)
+    {
+        var entity = await _db.VpnInfos.FirstOrDefaultAsync(v => v.Id == id);
+        if (entity == null)
+        {
+            return Ok(
+                new ApiResponse
+                {
+                    Ok = false,
+                    Message = "not found"
+                });
+        }
+
+        try
+        {
+            using var tcp = new TcpClient();
+            await tcp.ConnectAsync(entity.Ip, short.Parse(entity.Port))
+                .WaitAsync(TimeSpan.FromSeconds(3));
+            return Ok(new { ok = true, id = entity.Id, data = "connection successful" });
+        }
+        catch
+        {
+            return Ok(new { ok = false, id = entity.Id, data = "connection failed" });
+        }
     }
 }
