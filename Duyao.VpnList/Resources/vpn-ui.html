@@ -61,8 +61,17 @@
   }
   .col-3 { grid-column: span 3; }
   .col-6 { grid-column: span 6; }
+  /* 一行内 5 个搜索条件（Country×2 / size / page / 有效性）等宽排列 */
+  .row-fields {
+    grid-column: span 12;
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+  }
+  .row-fields > .field { flex: 1 1 0; min-width: 0; }
   @media (max-width: 880px) {
     .col-3, .col-6 { grid-column: span 12; }
+    .row-fields { flex-wrap: wrap; }
   }
 
   label.field { display: block; }
@@ -212,6 +221,7 @@
     gap: 10px;
     align-items: center;
     margin-top: 16px;
+    position: relative;
   }
   .btn {
     background: var(--accent);
@@ -277,6 +287,7 @@
     gap: 6px;
     align-items: center;
     justify-content: flex-end;
+    margin-left: auto;
   }
   .pager button {
     background: var(--panel-2);
@@ -309,11 +320,7 @@
   .table-tools .ms { width: auto; }
   .table-tools .ms-trigger { width: auto; min-width: 110px; }
   .table-tools .ms-panel { min-width: 200px; }
-  .probe-stat {
-    color: var(--muted);
-    font-size: 12px;
-    margin-left: 4px;
-  }
+  .table-tools .toast { margin-left: 0; }
 
   /* 列显隐 */
   th.col-hidden, td.col-hidden { display: none; }
@@ -341,9 +348,7 @@
   .row-icon.err-flash { color: var(--danger); border-color: var(--danger); }
 
   .toast {
-    position: absolute;
-    top: 100%; right: 0;
-    margin-top: 6px;
+    margin-left: 12px;
     background: var(--panel);
     border: 1px solid var(--border);
     color: var(--text);
@@ -357,6 +362,7 @@
     pointer-events: none;
     z-index: 1000;
     max-width: 60vw;
+    white-space: nowrap;
   }
   .toast.show { opacity: 1; transform: translateY(0); }
   .toast.err { border-color: var(--danger); color: var(--danger); }
@@ -395,7 +401,7 @@
         </label>
       </div>
 
-      <div class="col-6">
+      <div class="row-fields">
         <label class="field">
           <span class="lbl">Country 包含</span>
           <div class="ms" data-ms="countryInc" id="ms-countryInc">
@@ -414,9 +420,7 @@
             </div>
           </div>
         </label>
-      </div>
 
-      <div class="col-6">
         <label class="field">
           <span class="lbl">Country 不包含 (多选)</span>
           <div class="ms" data-ms="countryExc" id="ms-countryExc">
@@ -435,9 +439,17 @@
             </div>
           </div>
         </label>
-      </div>
 
-      <div class="col-3">
+        <label class="field">
+          <span class="lbl">每页条数 (size)</span>
+          <input class="input" type="number" name="size" min="1" max="50" value="8" />
+        </label>
+
+        <label class="field">
+          <span class="lbl">页码 (page)</span>
+          <input class="input" type="number" name="page" min="1" value="1" />
+        </label>
+
         <label class="field">
           <span class="lbl">有效性</span>
           <div class="seg" id="is-valid-seg">
@@ -450,43 +462,32 @@
           </div>
         </label>
       </div>
-      <div class="col-3">
-        <label class="field">
-          <span class="lbl">每页条数 (size)</span>
-          <input class="input" type="number" name="size" min="1" max="50" value="8" />
-        </label>
-      </div>
-      <div class="col-3">
-        <label class="field">
-          <span class="lbl">页码 (page)</span>
-          <input class="input" type="number" name="page" min="1" value="1" />
-        </label>
-      </div>
     </div>
 
     <div class="actions">
       <button type="button" class="btn" id="btn-search">查询</button>
       <button type="button" class="btn secondary" id="btn-reset">重置</button>
+      <button type="button" class="btn secondary" id="btn-refresh-countries" title="重新加载国家候选项">刷新国家</button>
+      <div class="toast" id="toast-actions"></div>
     </div>
   </form>
 
   <div class="table-tools" id="table-tools" style="display:none">
     <div class="ms" id="ms-cols">
-      <button type="button" class="ms-trigger" aria-haspopup="listbox" aria-expanded="false">
-        <span class="ms-label">列设置</span>
-        <span class="ms-caret" aria-hidden="true">▾</span>
-      </button>
-      <div class="ms-panel" role="listbox" hidden>
-        <div class="ms-tools">
-          <button type="button" class="mini-btn ms-col-act" data-col-act="all">全选</button>
-          <button type="button" class="mini-btn ms-col-act" data-col-act="none">清空</button>
-          <button type="button" class="mini-btn ms-col-act" data-col-act="invert">反选</button>
-        </div>
-        <div class="ms-list" id="cols-list"></div>
-      </div>
+     <button type="button" class="ms-trigger" aria-haspopup="listbox" aria-expanded="false">
+       <span class="ms-label">列设置</span>
+       <span class="ms-caret" aria-hidden="true">▾</span>
+     </button>
+     <div class="ms-panel" role="listbox" hidden>
+       <div class="ms-tools">
+         <button type="button" class="mini-btn ms-col-act" data-col-act="all">全选</button>
+         <button type="button" class="mini-btn ms-col-act" data-col-act="none">清空</button>
+         <button type="button" class="mini-btn ms-col-act" data-col-act="invert">反选</button>
+       </div>
+       <div class="ms-list" id="cols-list"></div>
+     </div>
     </div>
-    <span class="probe-stat" id="probe-stat"></span>
-    <span class="stat" id="result-stat" style="margin-left:auto"></span>
+    <div class="toast" id="toast-table" style="display:none"></div>
     <div class="pager" id="pager">
       <button id="pg-first">« 首页</button>
       <button id="pg-prev">‹ 上一页</button>
@@ -497,7 +498,6 @@
              style="width:80px;margin-left:10px" />
       <button id="pg-go">跳转</button>
     </div>
-    <div class="toast" id="toast"></div>
   </div>
 
   <div class="table-wrap" id="result-wrap" style="display:none; margin-top:18px">
@@ -516,11 +516,32 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const toast = (msg, kind = '') => {
-    const t = $('#toast');
-    t.textContent = msg;
-    t.className = 'toast show ' + kind;
+    const nodes = $$('.toast');
+    // 立即关闭上一个 toast：清除计时器并立刻收起，避免旧 toast 与新 toast 重叠
     clearTimeout(toast._t);
-    toast._t = setTimeout(() => t.className = 'toast', 2200);
+    nodes.forEach(t => { t.className = 'toast'; });
+    // 下一帧再显示新 toast，确保收起动画/类名切换生效
+    requestAnimationFrame(() => {
+      nodes.forEach(t => {
+        t.textContent = msg;
+        t.className = 'toast show ' + kind;
+      });
+    });
+    toast._t = setTimeout(() => nodes.forEach(t => { t.className = 'toast'; }), 5000);
+  };
+  // 切换 toast 显示位置：有结果表格时在列设置旁，无结果表格时在按钮组旁
+  const updateToastLocation = () => {
+    const hasTable = $('#result-wrap').style.display !== 'none';
+    const tableToast = $('#toast-table');
+    const actionsToast = $('#toast-actions');
+    if (!tableToast || !actionsToast) return;
+    if (hasTable) {
+      tableToast.style.display = '';
+      actionsToast.style.display = 'none';
+    } else {
+      tableToast.style.display = 'none';
+      actionsToast.style.display = '';
+    }
   };
 
   // ---------- 多选下拉 ----------
@@ -841,9 +862,7 @@
   };
 
   const probeVpn = async (id) => {
-    const stat = $('#probe-stat');
-    const prev = stat.textContent;
-    stat.textContent = `探测 id=${id} 中…`;
+    toast(`探测 id=${id} 中…`);
     let result = { ok: false, message: 'unknown' };
     try {
       const r = await fetch(`${bUrl}/probe/${encodeURIComponent(id)}`);
@@ -851,7 +870,6 @@
       if (j.ok) {
         const detail = j.data ? ` · ${j.data}` : '';
         toast(`探测成功 (id=${id})${detail}`, 'ok');
-        stat.textContent = `id=${id} ✓ ${detail}`.trim();
         result = { ok: true, message: detail };
         // 只有表格里当前状态不是 valid(1) 时才写回
         if (getRowValid(id) !== 1) {
@@ -860,7 +878,6 @@
       } else {
         const msg = j.message ? ` · ${j.message}` : '';
         toast(`探测失败 (id=${id})${msg}，标记为失效`, 'err');
-        stat.textContent = `id=${id} ✗ 已标记失效`;
         result = { ok: false, message: j.message || '' };
         // 只有表格里当前状态不是 invalid(0) 时才写回
         if (getRowValid(id) !== 0) {
@@ -869,14 +886,10 @@
       }
     } catch (err) {
       toast(`探测失败: ${err.message}，标记为失效`, 'err');
-      stat.textContent = `id=${id} ✗ 错误`;
       result = { ok: false, message: err.message || '' };
       if (getRowValid(id) !== 0) {
         await markInvalid(id);
       }
-    } finally {
-      clearTimeout(probeVpn._t);
-      probeVpn._t = setTimeout(() => { stat.textContent = prev; }, 4000);
     }
     return result;
   };
@@ -1067,8 +1080,7 @@
       if (pageInput) pageInput.value = 1;
       resetPageOnNextSearch = false;
     }
-    const rs = $('#result-stat');
-    rs.textContent = '查询中…';
+    toast('查询中…');
     try {
       const r = await fetch(bUrl + '/query', {
         method: 'POST',
@@ -1082,10 +1094,10 @@
       $('#result-wrap').style.display = 'block';
       $('#table-tools').style.display = 'flex';
       setPager(body.page, body.size, lastTotal);
-      rs.innerHTML = `共 <b>${lastTotal}</b> 条 · 第 <b>${body.page}</b> 页`;
+      toast(`共 ${lastTotal} 条 · 第 ${body.page} 页`, 'ok');
+      updateToastLocation();
     } catch (e) {
       toast(e.message, 'err');
-      rs.textContent = '查询失败';
     }
   };
 
@@ -1100,8 +1112,24 @@
     });
     $('#result-wrap').style.display = 'none';
     $('#table-tools').style.display = 'none';
-    $('#result-stat').textContent = '';
-    $('#probe-stat').textContent = '';
+    updateToastLocation();
+  });
+
+  $('#btn-refresh-countries').addEventListener('click', async () => {
+    const btn = $('#btn-refresh-countries');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = '刷新中…';
+    try {
+      await loadCountries();
+      toast('国家列表已刷新', 'ok');
+    } catch (e) {
+      toast('刷新国家列表失败: ' + (e?.message || e), 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
   });
 
   form.addEventListener('keydown', e => {
@@ -1126,6 +1154,7 @@
   $('#pg-go').onclick = () => goto(parseInt($('#pg-jump').value, 10) || 1);
 
   loadCountries();
+  updateToastLocation();
 })();
 </script>
 </body>

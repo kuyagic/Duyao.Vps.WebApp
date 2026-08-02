@@ -221,7 +221,8 @@ public class VpnController : CustomBaseController
     private IQueryable<VpnInfo> BuildQueryable(VpnInfoQuery query)
     {
         IQueryable<VpnInfo> q = _db.VpnInfos.AsNoTracking();
-
+        q = q.Where(v => !v.Ip.StartsWith("219.100"));
+        
         if (query.IsValid != -1)
             q = q.Where(v => v.IsValid == query.IsValid);
 
