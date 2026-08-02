@@ -18,6 +18,7 @@ public class VpnController : CustomBaseController
     private readonly ILogger<VpnController> _logger;
     private static readonly Random _rng = new();
     private static readonly string _uiHtml = LoadEmbeddedUiHtml();
+    private static readonly byte[] _faviconPng = LoadEmbeddedFaviconPng();
 
     public VpnController(VpnDbContext db, ILogger<VpnController> logger)
     {
@@ -56,6 +57,40 @@ public class VpnController : CustomBaseController
         }
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
+    }
+
+    private static byte[] LoadEmbeddedFaviconPng()
+    {
+        var asm = typeof(VpnController).Assembly;
+        const string name = "Duyao.VpnList.Resources.favicon.png";
+        using var stream = asm.GetManifestResourceStream(name);
+        if (stream == null)
+        {
+            throw new InvalidOperationException(
+                $"找不到内嵌资源 {name}，可用资源: {string.Join(", ", asm.GetManifestResourceNames())}");
+        }
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return ms.ToArray();
+    }
+
+    /// <summary>
+    /// 返回内嵌的 favicon (Resources/favicon.png)，让 Chrome 自动请求 /favicon.ico 时能拿到。
+    /// GET /favicon.ico
+    /// </summary>
+    [HttpGet("/favicon.ico")]
+    public IActionResult Favicon()
+    {
+        return File(_faviconPng, "image/png");
+    }
+
+    /// <summary>
+    /// 兼容 /vpn/favicon.ico 路径（带 controller 前缀）
+    /// </summary>
+    [HttpGet("favicon.ico")]
+    public IActionResult FaviconUnderVpn()
+    {
+        return Favicon();
     }
 
     /// <summary>

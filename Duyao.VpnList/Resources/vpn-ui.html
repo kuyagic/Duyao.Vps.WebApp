@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>查询</title>
+<link rel="icon" type="image/png" href="/vpn/favicon.ico?t=1690e25002a0" />
 <style>
   :root {
     --bg: #0f1115;
@@ -832,6 +833,13 @@
     document.body.removeChild(ta);
   };
 
+  const getRowValid = (id) => {
+    const row = lastRows.find(v => String(v.id ?? '') === String(id));
+    if (!row) return null;
+    const v = row.isValid ?? row.is_valid;
+    return v == null ? null : Number(v);
+  };
+
   const probeVpn = async (id) => {
     const stat = $('#probe-stat');
     const prev = stat.textContent;
@@ -845,19 +853,27 @@
         toast(`探测成功 (id=${id})${detail}`, 'ok');
         stat.textContent = `id=${id} ✓ ${detail}`.trim();
         result = { ok: true, message: detail };
-        await markValid(id);
+        // 只有表格里当前状态不是 valid(1) 时才写回
+        if (getRowValid(id) !== 1) {
+          await markValid(id);
+        }
       } else {
         const msg = j.message ? ` · ${j.message}` : '';
         toast(`探测失败 (id=${id})${msg}，标记为失效`, 'err');
         stat.textContent = `id=${id} ✗ 已标记失效`;
         result = { ok: false, message: j.message || '' };
-        await markInvalid(id);
+        // 只有表格里当前状态不是 invalid(0) 时才写回
+        if (getRowValid(id) !== 0) {
+          await markInvalid(id);
+        }
       }
     } catch (err) {
       toast(`探测失败: ${err.message}，标记为失效`, 'err');
       stat.textContent = `id=${id} ✗ 错误`;
       result = { ok: false, message: err.message || '' };
-      await markInvalid(id);
+      if (getRowValid(id) !== 0) {
+        await markInvalid(id);
+      }
     } finally {
       clearTimeout(probeVpn._t);
       probeVpn._t = setTimeout(() => { stat.textContent = prev; }, 4000);

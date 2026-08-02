@@ -41,6 +41,7 @@
     <!-- 内嵌 UI 资源（由 VpnController.Ui 读取） -->
     <ItemGroup>
         <EmbeddedResource Include="Resources\vpn-ui.html" />
+        <EmbeddedResource Include="Resources\favicon.png" />
     </ItemGroup>
 
     <!-- 确保 SQLite native 库 (runtimes/linux-*/native/libe_sqlite3.so) 一定被打入 publish 输出目录 -->
