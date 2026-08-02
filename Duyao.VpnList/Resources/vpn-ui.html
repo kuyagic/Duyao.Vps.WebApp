@@ -845,6 +845,7 @@
         toast(`探测成功 (id=${id})${detail}`, 'ok');
         stat.textContent = `id=${id} ✓ ${detail}`.trim();
         result = { ok: true, message: detail };
+        await markValid(id);
       } else {
         const msg = j.message ? ` · ${j.message}` : '';
         toast(`探测失败 (id=${id})${msg}，标记为失效`, 'err');
@@ -862,6 +863,27 @@
       probeVpn._t = setTimeout(() => { stat.textContent = prev; }, 4000);
     }
     return result;
+  };
+
+  const markValid = async (id) => {
+    try {
+      const r = await fetch(`${bUrl}/setvalid/${encodeURIComponent(id)}/1`, { method: 'PUT' });
+      const j = await r.json().catch(() => ({ ok: false }));
+      if (!j.ok) {
+        toast(`标记有效失败 (id=${id})`, 'err');
+        return;
+      }
+    } catch (err) {
+      toast(`标记有效请求失败: ${err.message}`, 'err');
+      return;
+    }
+    const tr = $('#tbody').querySelector(`tr .row-actions[data-row-id="${CSS.escape(String(id))}"]`)?.closest('tr');
+    if (tr) {
+      const td = tr.querySelector('td[data-col="valid"]');
+      if (td) td.innerHTML = '<span class="pill ok">valid</span>';
+    }
+    const row = lastRows.find(v => String(v.id ?? '') === String(id));
+    if (row) { row.isValid = 1; row.is_valid = 1; }
   };
 
   const markInvalid = async (id) => {
@@ -925,7 +947,7 @@
       const ip = (btn.dataset.ip ?? '').trim();
       if (!id || !ip) { toast('该行缺少 ID 或 IP', 'err'); return; }
       btn.disabled = true;
-      const orig = btn.textContent;
+      const orig = '🔍';
       btn.textContent = '…';
       try {
         const lr = await fetch(`${LOOKUP_URL}/${encodeURIComponent(ip)}`);
