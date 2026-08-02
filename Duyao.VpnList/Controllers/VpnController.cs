@@ -171,7 +171,10 @@ public class VpnController : CustomBaseController
             q = q.Where(v => v.HostName == null || !v.HostName.Contains(query.HostNameNotContains));
 
         if (!string.IsNullOrEmpty(query.AsnOrgContains))
-            q = q.Where(v => v.AsnOrg != null && v.AsnOrg.Contains(query.AsnOrgContains));
+            q = q.Where(v => v.AsnOrg != null && 
+                             v.AsnOrg.ToLower()
+                                 .Contains(query.AsnOrgContains.ToLower())
+                             );
 
         // country 多值模糊：任一 country 关键字命中即匹配 (OR 语义)
         var lowerCountries = (query.CountryContains ?? new List<string>())
@@ -216,7 +219,7 @@ public class VpnController : CustomBaseController
             IpContains = ipContains,
             HostNameContains = hostNameContains,
             HostNameNotContains = hostNameNotContains,
-            AsnOrgContains = asnOrgContains,
+            AsnOrgContains = asnOrgContains?.ToLower(),
             IsValid = isValid ?? 1,
         };
         if (!string.IsNullOrWhiteSpace(countryContains))

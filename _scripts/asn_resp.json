@@ -1,0 +1,86 @@
+{
+  "asn": 13335,
+  "contacts": {
+    "abuse": {
+      "email": "abuse@cloudflare.com",
+      "name": "Trust and Safety",
+      "phone": "+16503198930",
+      "url": ""
+    },
+    "noc": {
+      "email": "noc@cloudflare.com",
+      "name": "NOC",
+      "phone": "",
+      "url": ""
+    },
+    "policy": {
+      "email": "epp@cloudflare.com",
+      "name": "Embedded Caches",
+      "phone": "",
+      "url": ""
+    }
+  },
+  "info": {
+    "aka": "",
+    "info_ipv6": true,
+    "info_multicast": false,
+    "info_never_via_route_servers": false,
+    "info_prefixes4": 80000,
+    "info_prefixes6": 30000,
+    "info_ratio": "Mostly Outbound",
+    "info_scope": "Global",
+    "info_traffic": "",
+    "info_types": [
+      "Content"
+    ],
+    "info_unicast": true,
+    "irr_as_set": "AS13335:AS-CLOUDFLARE",
+    "looking_glass": "",
+    "name": "Cloudflare",
+    "name_long": "",
+    "notes": "Cloudflare operates a global anycast network. All peers are required to have a complete PeeringDB entry and 24x7 NOC. PeeringDB is used for provisioning peering sessions. The number of prefixes we advertise will vary across sessions, and over time.\n\n**Automatic IX peering** is available through [**Cloudflare Peering Portal**](https://peering.cloudflare.com/). Authenticate using PeeringDB OIDC. ASN admins on PeeringDB are authorized to request peering.\n\nNetworks exchanging more than 10 Gbps of traffic in a single location may request a PNI. Only Nx100G LR4 connections are supported. Networks may also be eligible for embedded caches.\n\nPeering and embedded cache guidelines available at [**cloudflare.com/peering-policy**](https://www.cloudflare.com/peering-policy/).\n\nSubmit verifiable abuse reports to [**cloudflare.com/abuse**](https://www.cloudflare.com/trust-hub/abuse-approach/). Do not send abuse reports to NOC / Policy email addresses.",
+    "policy_contracts": "Not Required",
+    "policy_general": "Open",
+    "policy_locations": "Preferred",
+    "policy_ratio": false,
+    "policy_url": "https://www.cloudflare.com/peering-policy/",
+    "rir_status": "ok",
+    "rir_status_updated": "2024-06-26 04:47:55",
+    "route_server": "",
+    "social_media": [
+      {
+        "identifier": "https://www.cloudflare.com",
+        "service": "website"
+      }
+    ],
+    "status": "ok",
+    "status_dashboard": "https://www.cloudflarestatus.com/",
+    "website": "https://www.cloudflare.com"
+  },
+  "ipv4_count": 1357056,
+  "ipv6_count": 1520591731614559034462126997504,
+  "organization": {
+    "address1": "101 Townsend St",
+    "address2": "",
+    "aka": "",
+    "city": "San Francisco",
+    "country": "US",
+    "floor": "",
+    "latitude": 37.7802848815918,
+    "longitude": -122.39048767089844,
+    "name": "Cloudflare, Inc.",
+    "name_long": "",
+    "notes": "Request your Peering Portal access at [https://www.cloudflare.com/partners/peering-portal/](https://www.cloudflare.com/partners/peering-portal/)\n\nOur [peering policy](https://www.cloudflare.com/peering-policy/)",
+    "social_media": [
+      {
+        "identifier": "https://www.cloudflare.com/",
+        "service": "website"
+      }
+    ],
+    "state": "CA",
+    "status": "ok",
+    "suite": "",
+    "website": "https://www.cloudflare.com/",
+    "zipcode": "94107-1934"
+  }
+}

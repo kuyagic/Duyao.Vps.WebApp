@@ -3,7 +3,7 @@
 # fulfill-asn-org.sh
 # 1. 查询线上接口（默认 /vpn/query）拉取还没有 asn_org 的 vpn 记录
 # 2. 对每条记录，调用 https://ip.net.coffee/api/ip/lookup/<ip> 拿 ASN 信息
-# 3. 取返回里的 asOrganization 字段，调 PUT /vpn/setAsnOrg/{id} 回写
+# 3. 取返回里的 organization.name 字段（旧接口用 asOrganization），调 PUT /vpn/setAsnOrg/{id} 回写
 #    body: { "data": "<asOrganization>" }
 #
 # 用法:
@@ -15,8 +15,8 @@
 #   QUERY='{"page":1,"size":50}' ./fulfill-asn-org.sh  # 自定义查询条件
 #
 # Env:
-#   API_BASE       - 自己的 VPN 接口 base (default https://asstp.eooi.de/vpn)
-#   LOOKUP_BASE    - 第三方 ASN 查询 base (default https://ip.net.coffee/api/ip/lookup)
+#   API_BASE       - 自己的 VPN 接口 base
+#   LOOKUP_BASE    - 第三方 ASN 查询 base
 #   PAGE_SIZE      - 每页拉取条数 (default 100)
 #   CONCURRENCY    - 并发请求数 (default 8)
 #   RATE_LIMIT     - 单 worker 请求间隔秒数 (default 0.1)
@@ -27,8 +27,8 @@
 
 set -u
 
-API_BASE="${API_BASE:-https://asstp.eooi.de/vpn}"
-LOOKUP_BASE="${LOOKUP_BASE:-https://ip.net.coffee/api/ip/lookup}"
+API_BASE="${API_BASE:-http://127.0.0.1:5001/vpn}"
+LOOKUP_BASE="${LOOKUP_BASE:-http://127.0.0.1:5002/api/ip}"
 PAGE_SIZE="${PAGE_SIZE:-100}"
 CONCURRENCY="${CONCURRENCY:-8}"
 RATE_LIMIT="${RATE_LIMIT:-0.1}"
@@ -110,7 +110,8 @@ def http_json(method, url, body=None, timeout=30):
     req = urllib.request.Request(url, data=data, method=method, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         raw = resp.read().decode("utf-8", errors="replace")
-        return json.loads(raw) if raw else {}
+        result = json.loads(raw) if raw else {}
+        return result if result is not None else {}
 
 
 def fetch_page(page):
@@ -138,13 +139,13 @@ def lookup_asn(ip):
     except Exception as e:
         log(f"[warn] lookup {ip} error: {e}")
         return None
-    as_org = resp.get("asOrganization")
-    if not as_org:
-        as_org = (
-            resp.get("as_organization")
-            or resp.get("asn_org")
-            or (resp.get("asn") or {}).get("organization")
-        )
+    as_org = (
+        (resp.get("organization") or {}).get("name")
+        or resp.get("asOrganization")
+        or resp.get("as_organization")
+        or resp.get("asn_org")
+        or (resp.get("asn") or {}).get("organization")
+    )
     if not isinstance(as_org, str):
         return None
     as_org = as_org.strip()
@@ -173,7 +174,7 @@ def write_back(row_id, as_org):
 def should_process(row):
     if not only_empty:
         return True
-    v = row.get("asn_org")
+    v = row.get("asnOrg")
     return v is None or v == ""
 
 
@@ -223,12 +224,14 @@ if not targets:
 # 3) 并发处理
 ok = miss = fail = skip = 0
 with cf.ThreadPoolExecutor(max_workers=concurrency) as pool:
-    futures = [pool.submit(process_row, r) for r in targets]
+    futures = {pool.submit(process_row, r): r for r in targets}
     for fut in cf.as_completed(futures):
+        r = futures[fut]
+        rid0, ip0 = r.get("id"), r.get("ip")
         try:
             status, rid, ip, as_org, reason = fut.result()
         except Exception as e:
-            log(f"[error] worker exception: {e}")
+            log(f"[error] worker exception: {e} id={rid0} ip={ip0}")
             fail += 1
             continue
         if status == "ok":

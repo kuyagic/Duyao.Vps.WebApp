@@ -1,0 +1,355 @@
+#!/usr/bin/env python3
+"""vg - VPN query CLI for Duyao.VpnList (query-only).
+
+Thin Python wrapper around `curl` for HTTP and `jq` for JSON shaping.
+Reads subcommand + filters from argv, builds a curl invocation, and prints
+compact JSON one entry per line so the output is pipeable to `vg jq`
+(extracts `ip:port`).
+
+Subcommands:
+    v|version                       GET  /vpn            show service version
+    get  [country,...] [ip= S] [hn= S] [hx= S] [asn= S]
+         [--page N --size N --all --all-cn]
+                                     GET  /vpn/query     list entries (default)
+    one  [country,...] [ip= S ...]  GET  /vpn/rnd       pick one random entry
+    c|count  [country,...]          GET  /vpn/query     print .total only
+    asn  <substr>                   GET  /vpn/query     filter by asn_org
+    ip   <substr>                   GET  /vpn/query     filter by ip
+    hn   <substr>                   GET  /vpn/query     filter by host_name
+    hx   <substr>                   GET  /vpn/query     exclude host_name
+    iso  [--iso-all]                GET  /vpn/iso       list distinct countries
+    post                             POST /vpn/query     send raw JSON body from stdin
+    jq                               format stdin as ip:port (pipeable)
+    help|-h|--help                  show this banner
+
+Filters:
+    - Positional args are joined with ',' as country_contains (OR).
+    - ip=S, hn=S, hx=S, asn=S set the matching _contains / _not_contains filter.
+    - By default China is excluded; pass --all-cn to include it.
+    - --page N / --size N control pagination; --all walks every page.
+    - --iso-all makes `iso` return is_valid=-1 (no validity filter).
+
+Env:
+    API_BASE   base URL (default https://sstp-https.1api.pp.ua/vpn)
+"""
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+
+API_BASE = os.environ.get("API_BASE", "https://sstp-https.1api.pp.ua/vpn")
+
+BANNER = """\
+vg - VPN query CLI for Duyao.VpnList (query-only)
+
+Subcommands:
+  v|version                       GET  /vpn            show service version
+  get  [country,...] [ip=S] [hn=S] [hx=S] [asn=S]
+       [--page N --size N --all --all-cn]
+                                   GET  /vpn/query     list entries (default)
+  one  [country,...] [ip=S ...]    GET  /vpn/rnd       pick one random entry
+  c|count  [country,...]           GET  /vpn/query     print .total only
+  asn  <substr>                    GET  /vpn/query     filter by asn_org
+  ip   <substr>                    GET  /vpn/query     filter by ip
+  hn   <substr>                    GET  /vpn/query     filter by host_name
+  hx   <substr>                    GET  /vpn/query     exclude host_name
+  iso  [--iso-all]                 GET  /vpn/iso       list distinct countries
+  post                              POST /vpn/query     send raw JSON body from stdin
+  jq                                format stdin as ip:port (pipeable)
+  help|-h|--help                   show this banner
+
+Filters:
+  - Positional args are joined with ',' as country_contains (OR).
+  - ip=S, hn=S, hx=S, asn=S set the matching _contains / _not_contains filter.
+  - By default China is excluded; pass --all-cn to include it.
+  - --page N / --size N control pagination; --all walks every page.
+  - --iso-all makes `iso` return is_valid=-1 (no validity filter).
+
+Env:
+  API_BASE   base URL (default https://sstp-https.1api.pp.ua/vpn)
+"""
+
+SUBCOMMANDS = {
+    "v", "version", "get", "one", "c", "count",
+    "asn", "ip", "hn", "hx", "iso", "post", "jq",
+    "help", "-h", "--help",
+}
+
+
+# ----------------------- helpers -----------------------
+
+def die(msg: str, code: int = 2) -> "None":
+    print(f"vg: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+def run_curl_get(path: str, params: list[tuple[str, str]]) -> str:
+    """GET with --data-urlencode for each (k, v) pair, returning the body."""
+    cmd = ["curl", "-4sL", "-G", f"{API_BASE}{path}"]
+    for k, v in params:
+        if v == "" or v is None:
+            continue
+        cmd += ["--data-urlencode", f"{k}={v}"]
+    return _curl(cmd)
+
+
+def run_curl_post(path: str, body: str) -> str:
+    cmd = [
+        "curl", "-4sL", "-X", "POST", f"{API_BASE}{path}",
+        "-H", "Content-Type: application/json",
+        "--data-binary", body,
+    ]
+    return _curl(cmd)
+
+
+def _curl(cmd: list[str]) -> str:
+    """Run curl, surfacing non-zero exits as a friendly vg error (no traceback)."""
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        sys.stderr.write(proc.stderr or "")
+        die(f"curl failed (exit {proc.returncode})", code=proc.returncode or 1)
+    return proc.stdout
+
+
+# ----------------------- arg parsing -----------------------
+
+def parse_filter_args_full(argv: list[str]):
+    """Same as parse_filter_args but also returns the state dict."""
+    filters: dict[str, str] = {}
+    positional: list[str] = []
+    state = {
+        "nc": "China",
+        "page": 1,
+        "size": 50,
+        "walk_all": False,
+        "iso_all": False,
+    }
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--":
+            i += 1
+            continue
+        if a == "--all":
+            state["walk_all"] = True
+        elif a == "--all-cn":
+            state["nc"] = ""
+        elif a == "--not-cn":
+            state["nc"] = "China"
+        elif a == "--iso-all":
+            state["iso_all"] = True
+        elif a == "--page":
+            i += 1
+            if i >= len(argv):
+                die("--page needs N")
+            state["page"] = int(argv[i])
+        elif a == "--size":
+            i += 1
+            if i >= len(argv):
+                die("--size needs N")
+            state["size"] = int(argv[i])
+        elif a in ("-h", "--help", "help"):
+            print(BANNER, end="")
+            sys.exit(0)
+        elif a.startswith("ip="):
+            filters["ip_contains"] = a[3:]
+        elif a.startswith("hn="):
+            filters["host_name_contains"] = a[3:]
+        elif a.startswith("hx="):
+            filters["host_name_not_contains"] = a[3:]
+        elif a.startswith("asn="):
+            filters["asn_org_contains"] = a[4:]
+        elif a.startswith("-"):
+            die(f"unknown flag: {a}")
+        else:
+            positional.append(a)
+        i += 1
+    return filters, positional, state
+
+
+def _jq(expr: str, input_text: str) -> str:
+    proc = subprocess.run(
+        ["jq", "-r", expr],
+        input=input_text,
+        text=True,
+        capture_output=True,
+    )
+    if proc.returncode != 0:
+        sys.stderr.write(proc.stderr or "")
+        die(f"jq failed (exit {proc.returncode})", code=proc.returncode or 1)
+    return proc.stdout
+
+
+def _jq_compact(expr: str, input_text: str) -> str:
+    proc = subprocess.run(
+        ["jq", "-c", expr],
+        input=input_text,
+        text=True,
+        capture_output=True,
+    )
+    if proc.returncode != 0:
+        sys.stderr.write(proc.stderr or "")
+        die(f"jq failed (exit {proc.returncode})", code=proc.returncode or 1)
+    return proc.stdout
+
+
+# ----------------------- commands -----------------------
+
+def cmd_query(filters: dict, positional: list[str], state: dict) -> None:
+    countries = ",".join(positional) if positional else ""
+    if countries:
+        filters = {**filters, "country_contains": countries}
+    if state["nc"]:
+        filters = {**filters, "country_not_contains": state["nc"]}
+
+    if state["walk_all"]:
+        page = 1
+        while True:
+            params = [(k, v) for k, v in filters.items()]
+            params += [("page", str(page)), ("size", str(state["size"]))]
+            body = run_curl_get("/query", params)
+            data_lines = _jq_compact(".data[]?", body)
+            sys.stdout.write(data_lines)
+            n = data_lines.count("\n")
+            if n < state["size"]:
+                break
+            page += 1
+            if page > 200:  # safety stop
+                break
+        return
+
+    params = [(k, v) for k, v in filters.items()]
+    params += [("page", str(state["page"])), ("size", str(state["size"]))]
+    body = run_curl_get("/query", params)
+    sys.stdout.write(_jq_compact(".data[]", body))
+
+
+def cmd_rnd(filters: dict, positional: list[str], state: dict) -> None:
+    countries = ",".join(positional) if positional else ""
+    f = dict(filters)
+    if countries:
+        f["country_contains"] = countries
+    if state["nc"]:
+        f["country_not_contains"] = state["nc"]
+    body = run_curl_get("/rnd", list(f.items()))
+    sys.stdout.write(_jq_compact(".data", body))
+
+
+def cmd_count(filters: dict, positional: list[str], state: dict) -> None:
+    countries = ",".join(positional) if positional else ""
+    f = dict(filters)
+    if countries:
+        f["country_contains"] = countries
+    if state["nc"]:
+        f["country_not_contains"] = state["nc"]
+    params = list(f.items()) + [("page", str(state["page"])),
+                                 ("size", str(state["size"]))]
+    body = run_curl_get("/query", params)
+    total = _jq(".total // 0", body).strip()
+    print(total)
+
+
+def cmd_convenience(key: str, filters: dict, positional: list[str], state: dict) -> None:
+    """asn / ip / hn / hx — if filter not set, take first positional as value."""
+    if positional and key not in filters:
+        # The filter names in the API are ip_contains / asn_org_contains etc.
+        api_key = {
+            "asn": "asn_org_contains",
+            "ip": "ip_contains",
+            "hn": "host_name_contains",
+            "hx": "host_name_not_contains",
+        }[key]
+        filters = {**filters, api_key: positional[0]}
+    if state["nc"]:
+        filters = {**filters, "country_not_contains": state["nc"]}
+    params = list(filters.items()) + [("page", str(state["page"])),
+                                      ("size", str(state["size"]))]
+    body = run_curl_get("/query", params)
+    sys.stdout.write(_jq_compact(".data[]", body))
+
+
+def cmd_iso(state: dict) -> None:
+    iv = -1 if state["iso_all"] else 1
+    body = run_curl_get("/iso", [("is_valid", str(iv))])
+    sys.stdout.write(_jq_compact(".data[]", body))
+
+
+def cmd_post() -> None:
+    body = sys.stdin.read()
+    out = run_curl_post("/query", body)
+    sys.stdout.write(out)
+
+
+def cmd_jq() -> None:
+    text = sys.stdin.read()
+    sys.stdout.write(_jq(r'"\(.ip):\(.port)"', text))
+
+
+def cmd_version() -> None:
+    out = _curl(["curl", "-4sL", f"{API_BASE}/"])
+    print(out, end="")
+
+
+# ----------------------- main -----------------------
+
+def main(argv: list[str]) -> int:
+    if not argv or argv[0] in ("-h", "--help", "help"):
+        print(BANNER, end="")
+        return 0
+
+    # Decide subcommand: only consume argv[0] if it's a known name.
+    if argv[0] in SUBCOMMANDS:
+        cmd = argv[0]
+        rest = argv[1:]
+    else:
+        cmd = "get"
+        rest = argv
+
+    if cmd == "help":
+        print(BANNER, end="")
+        return 0
+
+    if cmd == "v" or cmd == "version":
+        cmd_version()
+        return 0
+
+    if cmd == "post":
+        cmd_post()
+        return 0
+
+    if cmd == "jq":
+        cmd_jq()
+        return 0
+
+    if cmd == "iso":
+        filters, positional, state = parse_filter_args_full(rest)
+        cmd_iso(state)
+        return 0
+
+    if cmd in ("c", "count"):
+        filters, positional, state = parse_filter_args_full(rest)
+        cmd_count(filters, positional, state)
+        return 0
+
+    if cmd in ("asn", "ip", "hn", "hx"):
+        filters, positional, state = parse_filter_args_full(rest)
+        cmd_convenience(cmd, filters, positional, state)
+        return 0
+
+    if cmd == "one":
+        filters, positional, state = parse_filter_args_full(rest)
+        cmd_rnd(filters, positional, state)
+        return 0
+
+    if cmd == "get":
+        filters, positional, state = parse_filter_args_full(rest)
+        cmd_query(filters, positional, state)
+        return 0
+
+    die(f"unknown subcommand: {cmd} (try: vg help)")
+    return 2  # unreachable
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
