@@ -151,10 +151,14 @@
   .ms.open .ms-panel { display: flex; }
   .ms-tools {
     display: flex;
+    flex-direction: column;
     gap: 6px;
-    align-items: center;
   }
   .ms-tools .ms-search { flex: 1; min-width: 0; padding: 5px 8px; font-size: 12px; }
+  .ms-toolbar {
+    display: flex;
+    gap: 6px;
+  }
   .ms-list {
     overflow: auto;
     max-height: 240px;
@@ -412,9 +416,11 @@
             <div class="ms-panel" role="listbox" hidden>
               <div class="ms-tools">
                 <input class="input ms-search" type="search" placeholder="搜索国家…" />
-                <button type="button" class="mini-btn ms-act" data-act="all">全选</button>
-                <button type="button" class="mini-btn ms-act" data-act="none">清空</button>
-                <button type="button" class="mini-btn ms-act" data-act="invert">反选</button>
+                <div class="ms-toolbar">
+                  <button type="button" class="mini-btn ms-act" data-act="all">全选</button>
+                  <button type="button" class="mini-btn ms-act" data-act="none">清空</button>
+                  <button type="button" class="mini-btn ms-act" data-act="invert">反选</button>
+                </div>
               </div>
               <div class="ms-list"></div>
             </div>
@@ -431,9 +437,11 @@
             <div class="ms-panel" role="listbox" hidden>
               <div class="ms-tools">
                 <input class="input ms-search" type="search" placeholder="搜索国家…" />
-                <button type="button" class="mini-btn ms-act" data-act="all">全选</button>
-                <button type="button" class="mini-btn ms-act" data-act="none">清空</button>
-                <button type="button" class="mini-btn ms-act" data-act="invert">反选</button>
+                <div class="ms-toolbar">
+                  <button type="button" class="mini-btn ms-act" data-act="all">全选</button>
+                  <button type="button" class="mini-btn ms-act" data-act="none">清空</button>
+                  <button type="button" class="mini-btn ms-act" data-act="invert">反选</button>
+                </div>
               </div>
               <div class="ms-list"></div>
             </div>

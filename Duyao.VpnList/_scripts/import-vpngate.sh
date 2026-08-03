@@ -26,6 +26,9 @@ API="${API:-https://sstp-https.1api.pp.ua/vpn}"
 BATCH="${BATCH:-100}"
 DEFAULT_DATA="vpngate.csv"
 
+CF_ID="${CF_AID:-7ae23f247c53451aadc7115cc99896d8.access}"
+CF_SECRET="${CF_ASEC:-29458b810b225dc803ce9d1c3f17568200265cfd00bd87ce82a4aca4e79180a8}"
+
 WORK=$(mktemp -d)
 trap "rm -rf $WORK" EXIT
 
@@ -103,6 +106,8 @@ total_skp=0
 for f in $(ls $WORK/chunks/chunk_*.json | sort); do
     resp=$(curl -4s -m 60 -X POST "$API/batch" \
         -H "Content-Type: application/json" \
+        -H "CF-Access-Client-Id: $CF_ID" \
+        -H "CF-Access-Client-Secret: $CF_SECRET" \
         --data-binary @$f)
     echo "[$(basename $f)] $resp"
     ins=$(echo "$resp" | python3 -c "import json,sys;print(json.load(sys.stdin).get('inserted',0))")
