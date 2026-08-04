@@ -61,6 +61,12 @@ namespace Duyao.VpnList.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("ip");
 
+                    b.Property<int>("IsStar")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0)
+                        .HasColumnName("is_star");
+
                     b.Property<int>("IsValid")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")

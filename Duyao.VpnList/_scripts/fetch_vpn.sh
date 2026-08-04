@@ -12,7 +12,7 @@
 
 set -u
 
-API_BASE="${API_BASE:-https://google.com}"
+API_BASE="${API_BASE:-http://127.0.0.1:5001/vpn}"
 SOURCE_URL="${SOURCE_URL:-https://broad-band-0e8b.kuyagic.workers.dev/duyaoo}"
 BATCH="${BATCH:-100}"
 DRY_RUN="${DRY_RUN:-0}"

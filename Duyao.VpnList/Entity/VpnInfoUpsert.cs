@@ -30,4 +30,7 @@ public class VpnInfoUpsert
 
     [JsonProperty("is_valid")]
     public int? IsValid { get; set; } = 1;
+
+    [JsonProperty("is_star")]
+    public int? IsStar { get; set; }
 }

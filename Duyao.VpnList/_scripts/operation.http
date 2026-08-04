@@ -1,0 +1,9 @@
+### 设置Asn
+PUT https://sstp-https.1api.pp.ua/vpn/setAsnOrg/2587
+Content-Type: application/json
+
+{"data":"Owl Limited"}
+
+### 删除条目
+DELETE https://sstp-https.1api.pp.ua/vpn/delete/
+Content-Type: application/json

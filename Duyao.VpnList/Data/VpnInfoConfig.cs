@@ -58,6 +58,10 @@ public class VpnInfoConfig : IEntityTypeConfiguration<VpnInfo>
             .HasColumnName("is_valid")
             .HasDefaultValue(1);
 
+        builder.Property(v => v.IsStar)
+            .HasColumnName("is_star")
+            .HasDefaultValue(0);
+
         // 用于 ip+port 联合判定同一条记录
         builder.HasIndex(v => new { v.Ip, v.Port }).HasDatabaseName("ix_vpn_info_ip_port");
     }

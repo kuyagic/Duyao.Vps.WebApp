@@ -39,6 +39,10 @@ public class VpnController : CustomBaseController
     [HttpGet("ui")]
     public IActionResult Ui()
     {
+        // UI 是内嵌资源且经常更新，避免浏览器/代理缓存导致看不到最新修改
+        Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+        Response.Headers["Pragma"] = "no-cache";
+        Response.Headers["Expires"] = "0";
         return Content(_uiHtml, "text/html; charset=utf-8");
     }
 
@@ -119,11 +123,12 @@ public class VpnController : CustomBaseController
         [FromQuery(Name = "country_contains")] string? countryContains,
         [FromQuery(Name = "country_not_contains")] string? countryNotContains,
         [FromQuery(Name = "is_valid")] int? isValid,
+        [FromQuery(Name = "is_star")] int? isStar,
         [FromQuery(Name = "page")] int page = 1,
         [FromQuery(Name = "size")] int size = 50)
     {
         var q = BindFromQuery(ipContains, hostNameContains, hostNameNotContains,
-            asnOrgContains, countryContains, countryNotContains, isValid);
+            asnOrgContains, countryContains, countryNotContains, isValid, isStar);
         q.Page = page;
         q.Size = size;
         return await ExecuteQueryAsync(q);
@@ -164,10 +169,11 @@ public class VpnController : CustomBaseController
         [FromQuery(Name = "asn_org_contains")] string? asnOrgContains,
         [FromQuery(Name = "country_contains")] string? countryContains,
         [FromQuery(Name = "country_not_contains")] string? countryNotContains,
-        [FromQuery(Name = "is_valid")] int? isValid)
+        [FromQuery(Name = "is_valid")] int? isValid,
+        [FromQuery(Name = "is_star")] int? isStar)
     {
         var q = BindFromQuery(ipContains, hostNameContains, hostNameNotContains,
-            asnOrgContains, countryContains, countryNotContains, isValid);
+            asnOrgContains, countryContains, countryNotContains, isValid, isStar);
 
         var pool = await BuildQueryable(q).ToListAsync();
 
@@ -226,6 +232,9 @@ public class VpnController : CustomBaseController
         if (query.IsValid != -1)
             q = q.Where(v => v.IsValid == query.IsValid);
 
+        if (query.IsStar != -1)
+            q = q.Where(v => v.IsStar == query.IsStar);
+
         if (!string.IsNullOrEmpty(query.IpContains))
             q = q.Where(v => v.Ip != null && v.Ip.Contains(query.IpContains));
 
@@ -274,6 +283,7 @@ public class VpnController : CustomBaseController
     /// <summary>
     /// GET 接口参数绑定：country_contains / country_not_contains 用逗号分隔字符串
     /// is_valid: 不传 → 1（默认），传 -1 表示不过滤
+    /// is_star: 不传 → -1（不过滤），传 0/1 表示仅显示未星标 / 已星标
     /// </summary>
     private static VpnInfoQuery BindFromQuery(
         string? ipContains,
@@ -282,7 +292,8 @@ public class VpnController : CustomBaseController
         string? asnOrgContains,
         string? countryContains,
         string? countryNotContains,
-        int? isValid)
+        int? isValid,
+        int? isStar)
     {
         var q = new VpnInfoQuery
         {
@@ -290,6 +301,7 @@ public class VpnController : CustomBaseController
             HostNameContains = hostNameContains,
             HostNameNotContains = hostNameNotContains,
             IsValid = isValid ?? 1,
+            IsStar = isStar ?? -1,
         };
         if (!string.IsNullOrWhiteSpace(asnOrgContains))
         {
@@ -450,6 +462,7 @@ public class VpnController : CustomBaseController
         entity.Ext1 = upsert.Ext1;
         entity.Ext2 = upsert.Ext2;
         if (upsert.IsValid != null) entity.IsValid = upsert.IsValid.Value;
+        if (upsert.IsStar != null) entity.IsStar = upsert.IsStar.Value;
 
         entity.UpdateAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
@@ -476,6 +489,27 @@ public class VpnController : CustomBaseController
         await _db.SaveChangesAsync();
         _logger.LogInformation($"VpnList setvalid id={id} is_valid={isValid}");
         return Ok(new { ok = true, id = entity.Id, is_valid = entity.IsValid });
+    }
+
+    /// <summary>
+    /// 根据 id 设置 is_star（星标）
+    /// PUT /vpn/setstar/{id}/{isStar}
+    /// isStar: 0 或 1
+    /// </summary>
+    [HttpPut("setstar/{id}/{isStar}")]
+    public async Task<IActionResult> SetStar(long id, int isStar)
+    {
+        if (isStar != 0 && isStar != 1)
+            return BadRequest("isStar 只能为 0 或 1");
+
+        var entity = await _db.VpnInfos.FirstOrDefaultAsync(v => v.Id == id);
+        if (entity == null) return Ok(new ApiResponse { Ok = false, Message = "not found" });
+
+        entity.IsStar = isStar;
+        //entity.UpdateAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        _logger.LogInformation($"VpnList setstar id={id} is_star={isStar}");
+        return Ok(new { ok = true, id = entity.Id, is_star = entity.IsStar });
     }
 
     /// <summary>
@@ -516,6 +550,7 @@ public class VpnController : CustomBaseController
         if (!string.IsNullOrWhiteSpace(upsert.Ext1)) entity.Ext1 = upsert.Ext1;
         if (!string.IsNullOrWhiteSpace(upsert.Ext2)) entity.Ext2 = upsert.Ext2;
         if (upsert.IsValid != null) entity.IsValid = upsert.IsValid.Value;
+        if (upsert.IsStar != null) entity.IsStar = upsert.IsStar.Value;
     }
 
     /// <summary>

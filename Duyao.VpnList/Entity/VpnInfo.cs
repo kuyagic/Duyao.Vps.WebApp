@@ -48,4 +48,7 @@ public class VpnInfo
 
     [Column("is_valid")]
     public int IsValid { get; set; } = 1;
+
+    [Column("is_star")]
+    public int IsStar { get; set; } = 0;
 }

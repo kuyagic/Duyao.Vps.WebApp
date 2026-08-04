@@ -6,25 +6,48 @@ Reads subcommand + filters from argv, builds a curl invocation, and prints
 compact JSON one entry per line so the output is pipeable to `vg jq`
 (extracts `ip:port`).
 
-Subcommands:
-    v|version                       GET  /vpn            show service version
-    get  [country,...] [ip= S] [hn= S] [hx= S] [cx= S] [asn= S]
-         [--page N --size N --all --all-cn]
-                                     GET  /vpn/query     list entries (default)
-    one  [country,...] [ip= S ...]  GET  /vpn/rnd       pick one random entry
-    c|count  [country,...]          GET  /vpn/query     print .total only
-    asn  <substr>                   GET  /vpn/query     filter by asn_org
-    ip   <substr>                   GET  /vpn/query     filter by ip
-    hn   <substr>                   GET  /vpn/query     filter by host_name
-    hx   <substr>                   GET  /vpn/query     exclude host_name
-    iso  [--iso-all]                GET  /vpn/iso       list distinct countries
-    post                             POST /vpn/query     send raw JSON body from stdin
-    jq                               format stdin as ip:port (pipeable)
-    help|-h|--help                  show this banner
+Invocation:
+    The script is intended to be invoked as `vg <subcommand> ...`, but you
+    can also create symlinks (or copies) with the names below and invoke
+    them directly — the basename of argv[0] is then treated as the
+    subcommand, so `vgget Country` is equivalent to `vg get Country`.
+
+    Allowed alias basenames (each maps to the shown subcommand):
+        vgget  -> get     vgone  -> one     vgc   -> count
+        vgiso  -> iso     vgjq   -> jq      vgv   -> version
+
+    Subcommands:
+        v|version                       GET  /vpn            show service version
+        get  [country,...] [ip= S] [hn= S] [hx= S] [cx= S] [asn= S]
+             [--page N --size N --all --all-cn]
+                                        GET  /vpn/query     list entries
+        one  [country,...] [ip= S ...]  GET  /vpn/rnd       pick one random entry
+        c|count  [country,...]          GET  /vpn/query     print .total only
+        asn  <substr>                   GET  /vpn/query     filter by asn_org
+        ip   <substr>                   GET  /vpn/query     filter by ip
+        hn   <substr>                   GET  /vpn/query     filter by host_name
+        hx   <substr>                   GET  /vpn/query     exclude host_name
+        iso  [--iso-all]                GET  /vpn/iso       list distinct countries
+        post                             POST /vpn/query     send raw JSON body from stdin
+        jq                               format stdin as ip:port (pipeable)
+        help|-h|--help                  show this banner
+
+    Note: when invoked as `vg` (the script's real name) with no recognised
+    subcommand, the script now exits with an error — pass `get` explicitly
+    (or use a `vgget` symlink) to query by country.
 
 Filters:
     - Positional args are joined with ',' as country_contains (OR).
-    - ip=S, hn=S, hx=S, cx=S, asn=S set the matching _contains / _not_contains filter.
+    - Each k=S flag sets one API filter. They are all optional and can be
+      combined; matching is substring-based on the server.
+        ip=S    matches ip_contains              (e.g. ip=10.0.)
+        hn=S    matches host_name_contains       (e.g. hn=vpn.example)
+        hx=S    matches host_name_not_contains   (e.g. hx=internal)
+        cx=S    matches country_not_contains AND always also excludes
+                "China" (regardless of --all-cn); repeat cx= multiple times
+                to exclude several countries at once
+                (e.g. cx=India cx=Russia)
+        asn=S   matches asn_org_contains         (e.g. asn=Cloudflare)
     - By default China is excluded; pass --all-cn to include it.
     - --page N / --size N control pagination; --all walks every page.
     - --iso-all makes `iso` return is_valid=-1 (no validity filter).
@@ -42,12 +65,17 @@ API_BASE = os.environ.get("API_BASE", "https://sstp-https.1api.pp.ua/vpn")
 
 BANNER = """\
 vg - VPN query CLI for Duyao.VpnList (query-only)
+Version - 2026.0803.1313
+Invocation:
+  vg <subcommand> [args...]              # canonical
+  vgget, vgone, vgc, vgiso, vgjq, vgv    # symlink aliases (basename = subcommand)
+  Any other `vg*` name is rejected.
 
 Subcommands:
   v|version                       GET  /vpn            show service version
   get  [country,...] [ip=S] [hn=S] [hx=S] [cx=S] [asn=S]
        [--page N --size N --all --all-cn]
-                                   GET  /vpn/query     list entries (default)
+                                   GET  /vpn/query     list entries
   one  [country,...] [ip=S ...]    GET  /vpn/rnd       pick one random entry
   c|count  [country,...]           GET  /vpn/query     print .total only
   asn  <substr>                    GET  /vpn/query     filter by asn_org
@@ -61,13 +89,25 @@ Subcommands:
 
 Filters:
   - Positional args are joined with ',' as country_contains (OR).
-  - ip=S, hn=S, hx=S, cx=S, asn=S set the matching _contains / _not_contains filter.
+  - Each k=S flag sets one API filter. They are all optional and can be
+    combined; matching is substring-based on the server.
+      ip=S    matches ip_contains              (e.g. ip=10.0.)
+      hn=S    matches host_name_contains       (e.g. hn=vpn.example)
+      hx=S    matches host_name_not_contains   (e.g. hx=internal)
+      cx=S    matches country_not_contains AND always also excludes
+              "China" (regardless of --all-cn); repeat cx= multiple times
+              to exclude several countries at once
+              (e.g. cx=India cx=Russia)
+      asn=S   matches asn_org_contains         (e.g. asn=Cloudflare)
   - By default China is excluded; pass --all-cn to include it.
   - --page N / --size N control pagination; --all walks every page.
   - --iso-all makes `iso` return is_valid=-1 (no validity filter).
 
 Env:
   API_BASE   base URL (default https://sstp-https.1api.pp.ua/vpn)
+
+Version:
+  - 2026.0803.1313
 """
 
 SUBCOMMANDS = {
@@ -75,6 +115,19 @@ SUBCOMMANDS = {
     "asn", "ip", "hn", "hx", "iso", "post", "jq",
     "help", "-h", "--help",
 }
+
+# Basename -> subcommand mapping for symlink-style invocations (e.g. `vgget`).
+# Only the names below are accepted; any other `vg*` basename is an error.
+ALIAS_BASENAMES = {
+    "vgget": "get",
+    "vgone": "one",
+    "vgc":   "count",
+    "vgiso": "iso",
+    "vgjq":  "jq",
+    "vgv":   "version",
+}
+# Canonical basenames (the script itself + explicit `vg` is allowed).
+CANONICAL_BASENAMES = {"vg", "vg.py"}
 
 
 # ----------------------- helpers -----------------------
@@ -308,17 +361,49 @@ def cmd_version() -> None:
 # ----------------------- main -----------------------
 
 def main(argv: list[str]) -> int:
-    if not argv or argv[0] in ("-h", "--help", "help"):
+    # -h/--help works no matter how the script is invoked.
+    if argv and argv[0] in ("-h", "--help", "help"):
         print(BANNER, end="")
         return 0
 
-    # Decide subcommand: only consume argv[0] if it's a known name.
-    if argv[0] in SUBCOMMANDS:
-        cmd = argv[0]
-        rest = argv[1:]
-    else:
-        cmd = "get"
+    # If invoked through a recognised alias basename (e.g. `vgget`), use
+    # that alias's subcommand and treat the rest of argv as its args.
+    prog = os.path.basename(sys.argv[0] or "vg")
+    if prog in ALIAS_BASENAMES:
+        cmd = ALIAS_BASENAMES[prog]
         rest = argv
+    elif prog in CANONICAL_BASENAMES:
+        # Reject unknown `vg*` basenames loudly (catches typos like
+        # `vgge` or stray `vgfoo` symlinks).
+        if prog != "vg" and prog != "vg.py":
+            die(f"unknown alias: {prog} (allowed: {', '.join(sorted(ALIAS_BASENAMES))})")
+        if argv and argv[0] in SUBCOMMANDS:
+            cmd = argv[0]
+            rest = argv[1:]
+        elif not argv:
+            # No subcommand at all — show help instead of silently defaulting.
+            print(BANNER, end="")
+            return 0
+        else:
+            die(
+                f"unknown subcommand: {argv[0]!r} "
+                f"(try: vg help; or create a symlink like `vgget`, `vgone`, "
+                f"`vgc`, `vgiso`, `vgjq`, `vgv` to call without the "
+                f"subcommand keyword)"
+            )
+    else:
+        # Unrecognised basename that isn't a canonical `vg` invocation
+        # (e.g. `python3 vg ...` from some other path) — still allow
+        # explicit subcommand parsing as before.
+        if argv and argv[0] in SUBCOMMANDS:
+            cmd = argv[0]
+            rest = argv[1:]
+        else:
+            die(
+                f"unknown invocation name: {prog!r} "
+                f"(use `vg <subcommand> ...` or a symlink named one of: "
+                f"{', '.join(sorted(ALIAS_BASENAMES))})"
+            )
 
     if cmd == "help":
         print(BANNER, end="")

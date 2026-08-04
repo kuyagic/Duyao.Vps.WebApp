@@ -49,6 +49,15 @@ public class VpnInfoQuery
     [JsonProperty("is_valid")]
     public int IsValid { get; set; } = 1;
 
+    /// <summary>
+    /// is_star 过滤：
+    ///  - 默认 -1（不过滤）
+    ///  - 0：只显示未星标
+    ///  - 1：只显示已星标
+    /// </summary>
+    [JsonProperty("is_star")]
+    public int IsStar { get; set; } = -1;
+
     [JsonProperty("page")]
     public int Page { get; set; } = 1;
 

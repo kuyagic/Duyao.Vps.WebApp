@@ -20,6 +20,8 @@
     --chip: #2b3140;
     --chip-active: #3b82f6;
     --shadow: 0 8px 24px rgba(0,0,0,.35);
+    --star-bg: rgba(245, 200, 80, 0.12);
+    --star-bg-hover: rgba(245, 200, 80, 0.22);
   }
   @media (prefers-color-scheme: light) {
     :root {
@@ -32,6 +34,8 @@
       --chip: #eef1f7;
       --chip-active: #2563eb;
       --shadow: 0 6px 20px rgba(20,30,60,.08);
+      --star-bg: rgba(245, 200, 80, 0.18);
+      --star-bg-hover: rgba(245, 200, 80, 0.32);
     }
   }
   * { box-sizing: border-box; }
@@ -350,6 +354,11 @@
   .row-icon[disabled] { opacity: .5; cursor: not-allowed; }
   .row-icon.ok-flash { color: var(--ok); border-color: var(--ok); }
   .row-icon.err-flash { color: var(--danger); border-color: var(--danger); }
+  .row-icon.star-btn { font-size: 15px; }
+  .row-icon.star-btn.is-starred { color: #f5b301; border-color: #f5b301; background: rgba(245,179,1,.08); }
+  /* 星标行：淡金色背景（仅在搜索未过滤星标时由 JS 添加 .row-starred 类） */
+  tr.row-starred > td { background: var(--star-bg); }
+  tr.row-starred:hover > td { background: var(--star-bg-hover); }
 
   .toast {
     margin-left: 12px;
@@ -467,6 +476,18 @@
             <label for="iv0">失效</label>
             <input type="radio" id="iv-1" name="is_valid" value="-1" />
             <label for="iv-1">全部</label>
+          </div>
+        </label>
+
+        <label class="field">
+          <span class="lbl">星标</span>
+          <div class="seg" id="is-star-seg">
+            <input type="radio" id="is1" name="is_star" value="1" />
+            <label for="is1">★</label>
+            <input type="radio" id="is0" name="is_star" value="0" />
+            <label for="is0">☆</label>
+            <input type="radio" id="is-1" name="is_star" value="-1" checked />
+            <label for="is-1">全部</label>
           </div>
         </label>
       </div>
@@ -743,6 +764,7 @@
       host_name_not_contains: fd.get('host_name_not_contains')?.toString().trim() || undefined,
       asn_org_contains: asnArr.length > 0 ? asnArr : undefined,
       is_valid: parseInt(fd.get('is_valid') || '1', 10),
+      is_star: parseInt(fd.get('is_star') || '-1', 10),
       page: Math.max(1, parseInt(fd.get('page') || '1', 10)),
       size: Math.min(500, Math.max(1, parseInt(fd.get('size') || '50', 10))),
     };
@@ -767,6 +789,12 @@
   // ---------- 结果表格列定义 ----------
   const COLUMNS = [
     { key: 'id',       label: 'ID',       raw: v => v.id ?? '',                                       html: v => String(v.id ?? '') },
+    { key: 'star',     label: 'Star',     raw: v => (v.isStar ?? v.is_star) == 1 ? '1' : '0',
+      html: v => {
+        const on = (v.isStar ?? v.is_star) == 1;
+        const id = v.id ?? '';
+        return `<button type="button" class="row-icon star-btn${on ? ' is-starred' : ''}" data-act="toggleStar" data-row-id="${escapeHtml(String(id))}" data-on="${on ? '1' : '0'}" title="${on ? '取消星标' : '设为星标'}" aria-label="${on ? '取消星标' : '设为星标'}" aria-pressed="${on ? 'true' : 'false'}">${on ? '★' : '☆'}</button>`;
+      } },
     { key: 'ip',       label: 'IP',       raw: v => v.ip ?? '',                                       html: v => `<code>${escapeHtml(v.ip)}</code>` },
     { key: 'port',     label: 'Port',     raw: v => v.port ?? '',                                     html: v => escapeHtml(v.port) },
     { key: 'hostName', label: 'HostName', raw: v => v.hostName ?? v.host_name ?? '',                  html: v => escapeHtml(v.hostName ?? v.host_name) },
@@ -788,23 +816,43 @@
     { key: 'update',   label: 'Update',   raw: v => v.updateAt ?? v.update_at ?? '',                  html: v => escapeHtml(fmtDateTime(v.updateAt ?? v.update_at ?? '')) },
   ];
   const COL_KEYS = COLUMNS.map(c => c.key);
-  const COLS_LS_KEY = 'vpn.cols.visible';
+  // localStorage 键包含一个基于列清单的 schema 版本：
+  // 一旦列清单（COL_KEYS）变化（新增/删除/重排），版本号就变，
+  // 老数据被当作“首次访问”处理（默认全部可见），避免老的选择
+  // 把新列藏起来；而同一版本下的用户选择会被原样保留、跨刷新持久化。
+  const COLS_SCHEMA_VERSION = COL_KEYS.join('|');
+  const COLS_LS_KEY = 'vpn.cols.visible.v3';
+  const COLS_VERSION_LS_KEY = 'vpn.cols.schema.v3';
 
   const loadVisibleCols = () => {
+    const allVisible = () => new Set(COL_KEYS);
     try {
+      const savedVersion = localStorage.getItem(COLS_VERSION_LS_KEY);
+      if (savedVersion !== COLS_SCHEMA_VERSION) {
+        // 列清单变了，重置可见列集合为全部可见
+        return allVisible();
+      }
       const raw = localStorage.getItem(COLS_LS_KEY);
-      if (!raw) return new Set(COL_KEYS);
+      if (!raw) return allVisible();
       const arr = JSON.parse(raw);
       const s = new Set(Array.isArray(arr) ? arr.filter(k => COL_KEYS.includes(k)) : []);
-      if (s.size === 0) return new Set(COL_KEYS);
+      // 过滤掉当前版本里已经不存在的 key
+      // 同时把“全空”视为“首次访问”，避免老版本空集把新列也藏起来
+      if (s.size === 0) return allVisible();
       return s;
-    } catch { return new Set(COL_KEYS); }
+    } catch { return allVisible(); }
   };
   const saveVisibleCols = (s) => {
-    try { localStorage.setItem(COLS_LS_KEY, JSON.stringify(Array.from(s))); } catch {}
+    try {
+      localStorage.setItem(COLS_LS_KEY, JSON.stringify(Array.from(s)));
+      localStorage.setItem(COLS_VERSION_LS_KEY, COLS_SCHEMA_VERSION);
+    } catch {}
   };
   let visibleCols = loadVisibleCols();
   let lastRows = [];
+  // 最近一次查询的 body；用于在渲染时判断「星标行」是否应高亮
+  // is_star = -1 时高亮，其它值（0/1）不设置行背景色
+  let lastSearchBody = null;
 
   const renderThead = () => {
     const fixed = '<th class="col-fixed" style="width:64px">操作</th>';
@@ -829,6 +877,9 @@
     const id = v.id ?? '';
     const ip = v.ip ?? '';
     const port = v.port ?? '';
+    const starred = (v.isStar ?? v.is_star) == 1;
+    // 只有当搜索未过滤星标（is_star 默认 -1）且当前行是星标行时才加金色背景
+    const highlight = starred && (!lastSearchBody || Number(lastSearchBody.is_star) === -1);
     const fixed = `<td class="col-fixed"><span class="row-actions" data-row-id="${escapeHtml(String(id))}" data-ip="${escapeHtml(ip)}" data-port="${escapeHtml(port)}">
       <button type="button" class="row-icon" data-act="copy" title="复制 IP:Port" aria-label="复制 IP:Port">⧉</button>
       <button type="button" class="row-icon" data-act="probe" title="探测" aria-label="探测">↻</button>
@@ -836,7 +887,7 @@
     const rest = COLUMNS.map(c =>
       `<td data-col="${c.key}" class="${visibleCols.has(c.key) ? '' : 'col-hidden'}">${c.html(v)}</td>`
     ).join('');
-    return '<tr>' + fixed + rest + '</tr>';
+    return `<tr class="${highlight ? 'row-starred' : ''}">` + fixed + rest + '</tr>';
   };
 
   const renderRows = (rows) => {
@@ -1010,6 +1061,37 @@
       } finally {
         btn.disabled = false;
       }
+    } else if (btn.dataset.act === 'toggleStar') {
+      if (!id) { toast('该行缺少 ID', 'err'); return; }
+      const wasOn = btn.dataset.on === '1';
+      const next = wasOn ? 0 : 1;
+      btn.disabled = true;
+      try {
+        const r = await fetch(`${bUrl}/setstar/${encodeURIComponent(id)}/${next}`, { method: 'PUT' });
+        const j = await r.json().catch(() => ({ ok: false }));
+        if (!j.ok) throw new Error(j.message || '设置星标失败');
+        // 更新按钮视觉
+        btn.dataset.on = next ? '1' : '0';
+        btn.setAttribute('aria-pressed', next ? 'true' : 'false');
+        btn.title = next ? '取消星标' : '设为星标';
+        btn.setAttribute('aria-label', btn.title);
+        btn.textContent = next ? '★' : '☆';
+        btn.classList.toggle('is-starred', next === 1);
+        // 同步内存
+        const row = lastRows.find(v => String(v.id ?? '') === String(id));
+        if (row) { row.isStar = next; row.is_star = next; }
+        // 同步行背景：仅当未过滤星标时才高亮
+        const tr = btn.closest('tr');
+        if (tr) {
+          const highlight = next === 1 && (!lastSearchBody || Number(lastSearchBody.is_star) === -1);
+          tr.classList.toggle('row-starred', highlight);
+        }
+        toast(next ? `已设为星标 (id=${id})` : `已取消星标 (id=${id})`, 'ok');
+      } catch (err) {
+        toast(`星标操作失败: ${err.message}`, 'err');
+      } finally {
+        btn.disabled = false;
+      }
     }
   });
 
@@ -1088,6 +1170,8 @@
       if (pageInput) pageInput.value = 1;
       resetPageOnNextSearch = false;
     }
+    // 记录本次查询条件，供 renderRow 判断是否给星标行加金色背景
+    lastSearchBody = body;
     toast('查询中…');
     try {
       const r = await fetch(bUrl + '/query', {
