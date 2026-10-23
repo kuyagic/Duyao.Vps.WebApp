@@ -8,15 +8,25 @@ namespace Duyao.WebUtil.Controllers;
 [Route("[controller]")]
 public class PacController : CustomBaseController
 {
-    private const string CidrListUrl = "https://cdn.jsdelivr.net/gh/17mon/china_ip_list@master/china_ip_list.txt";
+    private readonly string CidrListUrl = "https://cdn.jsdelivr.net/gh/17mon/china_ip_list@master/china_ip_list.txt";
 
     private readonly ILogger<PacController> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
 
-    public PacController(ILogger<PacController> logger, IHttpClientFactory httpClientFactory)
+    private readonly IConfiguration _configuration;
+    public PacController(ILogger<PacController> logger
+        , IHttpClientFactory httpClientFactory
+        , IConfiguration opt
+        )
     {
         _logger = logger;
         _httpClientFactory = httpClientFactory;
+        _configuration = opt;
+        var cfgUrl = _configuration.GetValue<string>("PacChnListUrl");
+        if (!string.IsNullOrWhiteSpace(cfgUrl))
+        {
+            CidrListUrl = cfgUrl;
+        }
     }
 
     private static string CidrToMask(byte prefix)
@@ -87,6 +97,12 @@ public class PacController : CustomBaseController
                        """;
 
         return pac;
+    }
+
+    [HttpPost("")]
+    public async Task<IActionResult> ChnListUrl()
+    {
+        return await Task.Run(() => Ok(CidrListUrl));
     }
 
     /// <summary>

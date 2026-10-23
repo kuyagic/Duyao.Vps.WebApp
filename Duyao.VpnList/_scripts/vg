@@ -120,6 +120,7 @@ SUBCOMMANDS = {
 # Only the names below are accepted; any other `vg*` basename is an error.
 ALIAS_BASENAMES = {
     "vgget": "get",
+    "vgf": "get",
     "vgone": "one",
     "vgc":   "count",
     "vgiso": "iso",
