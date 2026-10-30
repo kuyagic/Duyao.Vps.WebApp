@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Duyao.ApiBase;
 using Duyao.WebUtil.Helper;
 using Duyao.TelegramFile.Entity;
 using Microsoft.AspNetCore.Diagnostics;

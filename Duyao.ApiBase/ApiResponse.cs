@@ -1,10 +1,18 @@
-﻿using System.Text.Json.Serialization;
+﻿
 
-namespace Duyao.TelegramFile.Entity;
+using Newtonsoft.Json;
+
+namespace Duyao.ApiBase;
 
 public class ApiResponse
 {
-    [JsonPropertyName("ok")] public bool Ok { get; set; } = true;
+    [JsonProperty("ok")] public bool Ok { get; set; } = true;
+    [JsonProperty("message")] public string? Message { get; set; }
+}
 
-    [JsonPropertyName("message")] public string? Message { get; set; }
+public class ApiResponseWithData<T>
+{
+    [JsonProperty("ok")] public bool Ok { get; set; } = true;
+    [JsonProperty("message")] public string? Message { get; set; }
+    [JsonProperty("data")] public T Data { get; set; }
 }

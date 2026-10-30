@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using Duyao.TelegramFile.Entity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Duyao.ApiBase;

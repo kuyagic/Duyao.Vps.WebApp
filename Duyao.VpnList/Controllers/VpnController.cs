@@ -1,6 +1,5 @@
 ﻿using System.Net.Sockets;
 using Duyao.ApiBase;
-using Duyao.TelegramFile.Entity;
 using Duyao.VpnList.Data;
 using Duyao.VpnList.Entity;
 using Microsoft.AspNetCore.Mvc;
