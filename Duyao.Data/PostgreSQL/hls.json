@@ -1,0 +1,41 @@
+﻿{
+  "code": {
+    "namespace": "Duyao.Data.PostgreSQL.Entity.Hls"
+  },
+  "schema": {
+    "exclude-tables": [],
+    "database-in-name": false
+  },
+  "general": {
+    "provider": "PostgreSQL",
+    "connection": "Server=127.0.0.1;Port=5432;Database=hls_video;Uid=postgres;Pwd=01982606-5148-7d75-9ed7-d40707c48b27",
+    "output": "./Entity/Hls",
+    "overwrite": true
+    //"customize": "../ScApi.Linq2Db.Tool/bin/Debug/net8.0/ScApi.Linq2Db.Tool.dll"
+  },
+  "dataModel": {
+    //"base-entity": "ScApi.Data.Interface.IScDatabaseColumn",
+    "partial-entities": true,
+    "context-name": "HlsVideoContext",
+    "data-context-class-name": {
+      "transformation": "none",
+      "pluralization": "none",
+      "case": "none"
+    },
+    "entity-class-name": {
+      "transformation": "none",
+      "pluralization": "none",
+      "case": "none"
+    },
+    "entity-column-property-name": {
+      "transformation": "none",
+      "pluralization": "none",
+      "case": "none"
+    },
+    "entity-context-property-name": {
+      "transformation": "none",
+      "pluralization": "none",
+      "case": "none"
+    }
+  }
+}
