@@ -32,6 +32,7 @@ public class HlsController : CustomBaseController
             throw new InvalidOperationException(
                 $"找不到内嵌资源 {name}，可用资源: {string.Join(", ", asm.GetManifestResourceNames())}");
         }
+
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
     }
@@ -66,11 +67,15 @@ public class HlsController : CustomBaseController
                 return Ok(new ApiResponse { Ok = false, Message = $"id={upsert.Id} 不存在" });
             }
 
-            entity.UpdateAt = DateTime.UtcNow;
+            entity.UpdateAt = DateTime.Now;
         }
         else
         {
-            entity = new HlsInfo { Guid = Guid.NewGuid().ToString("D") };
+            entity = new HlsInfo
+            {
+                Guid = Guid.NewGuid().ToString("n")
+                , CreateAt = DateTime.Now
+            };
             _db.HlsInfos.Add(entity);
         }
 
@@ -89,14 +94,14 @@ public class HlsController : CustomBaseController
 
     /// <summary>
     /// 分页查询
-    /// GET /api/list?page=1&pageSize=20&title=xxx
+    /// GET /api/list?page=1&size=20&title=xxx
     /// </summary>
     [HttpGet("list")]
-    public async Task<IActionResult> List([FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+    public async Task<IActionResult> List([FromQuery] int page = 1, [FromQuery] int size = 20,
         [FromQuery] string? title = null)
     {
         page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 200);
+        size = Math.Clamp(size, 1, 200);
 
         var query = _db.HlsInfos.AsNoTracking();
 
@@ -108,17 +113,20 @@ public class HlsController : CustomBaseController
         var total = await query.CountAsync();
         var items = await query
             .OrderByDescending(h => h.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((page - 1) * size)
+            .Take(size)
             .ToListAsync();
-
+        foreach (var i in items)
+        {
+            i.KeyData = null;
+        }
         return Ok(new ApiResponseWithData<object>
         {
             Data = new
             {
                 total,
                 page,
-                pageSize,
+                pageSize = size,
                 items
             }
         });
@@ -129,9 +137,9 @@ public class HlsController : CustomBaseController
     /// DELETE /api/delete/{id}
     /// </summary>
     [HttpDelete("delete/{id}")]
-    public async Task<IActionResult> Delete(string id)
+    public async Task<IActionResult> Delete(string? id)
     {
-        var key = (id ?? "").Trim();
+        var key = (id ?? string.Empty).Trim();
         var entity = long.TryParse(key, out var longId)
             ? await _db.HlsInfos.FirstOrDefaultAsync(h => h.Id == longId)
             : await _db.HlsInfos.FirstOrDefaultAsync(h => h.Guid == key.ToLowerInvariant());
@@ -151,7 +159,7 @@ public class HlsController : CustomBaseController
     /// GET /player/{guid}
     /// </summary>
     [HttpGet("/player/{id}")]
-    public async Task<IActionResult> Player(string id)
+    public async Task<IActionResult> Player(string? id)
     {
         var guid = (id ?? "").Trim().ToLowerInvariant();
         var entity = await _db.HlsInfos.AsNoTracking()
