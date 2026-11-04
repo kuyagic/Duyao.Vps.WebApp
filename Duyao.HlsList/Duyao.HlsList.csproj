@@ -7,11 +7,25 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.14" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Duyao.ApiBase\Duyao.ApiBase.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Controllers\" />
+    <EmbeddedResource Include="v.html" />
+    <EmbeddedResource Include="_olddata/hls-key/*.json" />
+    <EmbeddedResource Include="_olddata/hls-key/*.key" />
   </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.17" />
@@ -20,5 +34,10 @@
         <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.0" />
         <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="9.0.1" />
         <PackageReference Include="ModelContextProtocol.AspNetCore" Version="*" />
+    </ItemGroup>
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="_olddata\hls-key\lost10_ep1_tmec4395870626_837.json" />
+      <_ContentIncludedByDefault Remove="_olddata\hls-key\lost10_ep2_tmec4395870626_855.json" />
+      <_ContentIncludedByDefault Remove="_olddata\hls-key\lost10_ep3_tmec4395870626_880.json" />
     </ItemGroup>
 </Project>

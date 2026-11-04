@@ -1,8 +1,10 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Duyao.ApiBase;
-using Microsoft.AspNetCore.Diagnostics;
 using Duyao.ApiBase.Middleware;
+using Duyao.HlsList.Data;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 /*
@@ -34,7 +36,7 @@ try
     // 获取版本信息
     var version = assembly.GetName().Version;
 
-    verString = string.Format(BuildInfo.BuildTime, "CoreApi", version)
+    verString = string.Format(BuildInfo.BuildTime, "HlsList", version)
             .Replace("__commit_id__", BuildInfo.GIT_NONE)
         ;
     Log.Information($"Starting App. {verString}");
@@ -56,11 +58,6 @@ try
         //.AddXmlDataContractSerializerFormatters()
         .AddNewtonsoftJson();
 
-    var config = builder.Configuration.SetBasePath(basePath)
-        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-        .AddJsonFile("database.json", optional: false, reloadOnChange: true)
-        .Build();
-
     builder.Services.AddHttpClient();
     builder.Services.AddCors();
     builder.Services.AddHttpContextAccessor();
@@ -69,9 +66,11 @@ try
     // 优先使用环境变量 ConnectionStrings__Default，便于容器化部署
     var connStr = Environment.GetEnvironmentVariable("ConnectionStrings__Default")
                   ?? builder.Configuration.GetConnectionString("Default")
-                  ?? "";
-    //待注入 pgsql 的 配置
-    Console.WriteLine($"[VpnList] ConnectionString: {connStr}");
+                  ?? "Data Source=/data/hls.db";
+    builder.Services.AddDbContext<HlsDbContext>(opt =>
+        opt.UseSqlite(connStr));
+
+    Console.WriteLine($"[HlsList] ConnectionString: {connStr}");
 
     builder.Configuration.AddEnvironmentVariables();
 
@@ -82,6 +81,14 @@ try
     #region App 代码
 
     using var scope = app.Services.CreateScope();
+
+    // 自动执行迁移（Code First）
+    using (var db = scope.ServiceProvider.GetRequiredService<HlsDbContext>())
+    {
+        db.Database.Migrate();
+        Log.Information("[HlsList] DB migrated");
+    }
+
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
     app.UseExceptionHandler(exceptionHandlerApp =>
