@@ -1,0 +1,13 @@
+
+
+### 添加数据
+POST https://v.orzes.eu.org/api/add
+Content-Type:application/json
+
+{
+    "title":"",
+    "desc":"",
+    "key_data":"",
+    "entry_host":"",
+    "entry_path":""
+}

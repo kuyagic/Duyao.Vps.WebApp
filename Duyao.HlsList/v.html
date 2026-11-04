@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>极简视频播放器</title>
+<style>
+  :root {
+    --bg: #0e0f11;
+    --fg: #ececec;
+    --dim: #8b8f96;
+    --accent: #5b9dff;
+    --bar: rgba(255,255,255,.18);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--fg);
+    font: 14px/1.5 -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; gap: 12px; }
+
+  .player { position: relative; width: 100%; max-width: 1100px; aspect-ratio: 16/9; background: #000;
+    border-radius: 10px; overflow: hidden; user-select: none; }
+  .player:fullscreen { max-width: none; border-radius: 0; aspect-ratio: auto; }
+  video { width: 100%; height: 100%; display: block; background: #000; }
+
+  .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    pointer-events: none; }
+  .spinner { width: 38px; height: 38px; border: 3px solid var(--bar); border-top-color: var(--fg);
+    border-radius: 50%; animation: spin .8s linear infinite; display: none; }
+  .player.loading .spinner { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .msg { position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: var(--dim); background: rgba(0,0,0,.85); }
+  .msg.show { display: flex; }
+
+  .controls { position: absolute; left: 0; right: 0; bottom: 0; padding: 28px 14px 10px;
+    background: linear-gradient(transparent, rgba(0,0,0,.8)); transition: opacity .25s; }
+  .player.idle.playing .controls { opacity: 0; pointer-events: none; }
+  .player.idle.playing { cursor: none; }
+
+  .seek { position: relative; height: 16px; display: flex; align-items: center; cursor: pointer; touch-action: none; }
+  .track { position: relative; width: 100%; height: 3px; background: var(--bar); border-radius: 2px; transition: height .12s; }
+  .seek:hover .track, .seek.drag .track { height: 5px; }
+  .buf, .prog { position: absolute; left: 0; top: 0; height: 100%; border-radius: 2px; }
+  .buf { background: rgba(255,255,255,.28); }
+  .prog { background: var(--accent); }
+  .tip { position: absolute; bottom: 18px; transform: translateX(-50%); background: rgba(0,0,0,.85);
+    padding: 1px 6px; border-radius: 4px; font-size: 12px; display: none; font-variant-numeric: tabular-nums; }
+  .seek:hover .tip { display: block; }
+
+  .row { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+  .row .grow { flex: 1; }
+  button, select { background: none; border: 0; color: var(--fg); font: inherit; cursor: pointer;
+    padding: 6px 8px; border-radius: 6px; }
+  button:hover, select:hover { background: rgba(255,255,255,.12); }
+  button:focus-visible, select:focus-visible, .seek:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  select { appearance: none; -webkit-appearance: none; text-align: center; }
+  select option { background: #1a1c20; color: var(--fg); }
+  svg { width: 20px; height: 20px; fill: currentColor; display: block; }
+  .time { color: var(--dim); font-variant-numeric: tabular-nums; padding: 0 6px; white-space: nowrap; }
+  .vol { width: 72px; accent-color: var(--accent); }
+
+  .title { width: 100%; max-width: 1100px; word-break: break-all; color: var(--dim); font-size: 13px; }
+  .title b { color: var(--fg); font-weight: 500; }
+
+  @media (max-width: 560px) {
+    .vol { display: none; }
+    .time { font-size: 12px; padding: 0 2px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } .controls { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="player" id="player">
+  <video id="v" playsinline preload="metadata"></video>
+  <div class="overlay"><div class="spinner"></div></div>
+  <div class="msg" id="msg"></div>
+
+  <div class="controls" id="controls">
+    <div class="seek" id="seek" tabindex="0" role="slider" aria-label="播放进度">
+      <div class="track">
+        <div class="buf" id="buf"></div>
+        <div class="prog" id="prog"></div>
+      </div>
+      <div class="tip" id="tip">00:00</div>
+    </div>
+    <div class="row">
+      <button id="play" aria-label="播放/暂停"></button>
+      <span class="time"><span id="cur">00:00</span> / <span id="dur">00:00</span></span>
+      <span class="grow"></span>
+      <button id="mute" aria-label="静音"></button>
+      <input class="vol" id="vol" type="range" min="0" max="1" step="0.05" value="1" aria-label="音量">
+      <select id="rate" aria-label="倍速">
+        <option value="0.5">0.5x</option><option value="0.75">0.75x</option>
+        <option value="1" selected>1x</option><option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option><option value="2">2x</option>
+      </select>
+      <select id="level" aria-label="清晰度"><option value="-1">自动</option></select>
+      <button id="pip" aria-label="画中画"></button>
+      <button id="full" aria-label="全屏"></button>
+    </div>
+  </div>
+</div>
+<div class="title" id="title"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
+<script>
+(function () {
+  // ===== 配置 =====
+  // 播放页用法：player.html?id=<hls-key 名称>
+  // 会先请求 KEY_URL_TEMPLATE 指向的 json (含 title / key_url / entry_url)，再播放 entry_url
+  var KEY_URL_TEMPLATE = 'https://file.orzes.eu.org/hls-key/{id}.json';
+  var ID_MAP = {
+    // '123': 'myvideo123.key'
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var player = $('player'), v = $('v'), msg = $('msg');
+
+  var icons = {
+    play:  '<svg viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z"/></svg>',
+    pause: '<svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>',
+    vol:   '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>',
+    muted: '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9zm12.6 3l2.7-2.7-1.4-1.4-2.7 2.7-2.7-2.7-1.4 1.4 2.7 2.7-2.7 2.7 1.4 1.4 2.7-2.7 2.7 2.7 1.4-1.4z"/></svg>',
+    pip:   '<svg viewBox="0 0 24 24"><path d="M19 7H5v10h6v2H3V5h18v6h-2zm0 6h-7v6h9v-6z"/></svg>',
+    full:  '<svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg>'
+  };
+  $('mute').innerHTML = icons.vol; $('pip').innerHTML = icons.pip; $('full').innerHTML = icons.full;
+  $('play').innerHTML = icons.play;
+
+  function showMsg(t) { msg.textContent = t; msg.classList.add('show'); player.classList.remove('loading'); }
+  function fmt(s) {
+    if (!isFinite(s)) return '00:00';
+    s = Math.floor(s); var h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return (h ? h + ':' : '') + p(m) + ':' + p(x);
+  }
+
+  // ===== 解析播放信息 =====
+  // 优先使用服务端内嵌的 meta（GET /player/{id} 注入的 window.__HLS_META__，自动播放）
+  // 否则回退到 ?id=<hls-key 名称> 远程拉取 json 的老流程
+  var EMBEDDED = window.__HLS_META__ || null;
+  var AUTOPLAY = window.__HLS_AUTOPLAY__ === true;
+  var realId = '';
+
+  function tryAutoplay() {
+    if (!AUTOPLAY) return;
+    var p = v.play();
+    if (p && p.catch) p.catch(function () { v.muted = true; v.play().catch(function () {}); });
+  }
+
+  if (EMBEDDED && EMBEDDED.entryUrl) {
+    realId = String(EMBEDDED.id || EMBEDDED.title || 'video');
+    var tEmbedded = String(EMBEDDED.title || realId).replace(/[<>&]/g, '');
+    document.title = tEmbedded;
+    var dEmbedded = EMBEDDED.desc ? ' ' + String(EMBEDDED.desc).replace(/[<>&]/g, '') : '';
+    $('title').innerHTML = '<b>' + tEmbedded + '</b>' + dEmbedded;
+    if (EMBEDDED.img) v.setAttribute('poster', EMBEDDED.img);
+    player.classList.add('loading');
+    start(EMBEDDED.entryUrl);
+  } else {
+    var rawId = new URLSearchParams(location.search).get('id');
+    if (!rawId) { showMsg('缺少参数，请使用 ?id=视频ID'); return; }
+    realId = ID_MAP[rawId] || rawId;
+
+    player.classList.add('loading');
+    var metaUrl = KEY_URL_TEMPLATE.replace('{id}', encodeURIComponent(realId));
+    document.title = realId;
+    $('title').innerHTML = '<b>' + realId.replace(/[<>&]/g, '') + '</b>';
+
+    fetch(metaUrl).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (meta) {
+      var title = (meta.title || realId).replace(/[<>&]/g, '');
+      document.title = title;
+      $('title').innerHTML = '<b>' + title + '</b>';
+      start(meta.entry_url);
+    }).catch(function (e) {
+      showMsg('元数据加载失败（id 无效或未上传 json）：' + e.message);
+    });
+  }
+
+  // ===== 加载视频 =====
+  var hls = null;
+
+  // 使用服务端（数据库）下发的 key 解密；m3u8 内声明的 key URI 仅作无 keyData 时的回退
+    function makeDbKeyLoader(keyHex) {
+    var hasKey = keyHex && /^[0-9a-f]+$/i.test(keyHex) && keyHex.length % 2 === 0;
+    var DefaultLoader = Hls.DefaultConfig.loader;
+
+    // hls.js 1.5.x 的 key 请求与普通请求共用 config.loader（KeyLoader.loadKeyHTTP）
+    // 这里包装通用 loader：命中 key 请求（context.keyInfo）时直接返回数据库 key，
+    // 其余请求走默认 XhrLoader
+    function DbKeyLoader(config) {
+      DefaultLoader.call(this, config);
+    }
+    DbKeyLoader.prototype = Object.create(DefaultLoader.prototype);
+    DbKeyLoader.prototype.constructor = DbKeyLoader;
+
+    DbKeyLoader.prototype.load = function (context, config, callbacks) {
+      if (!(hasKey && context.keyInfo)) {
+        return DefaultLoader.prototype.load.call(this, context, config, callbacks);
+      }
+
+      var bytes = new Uint8Array(keyHex.length / 2);
+      for (var i = 0; i < bytes.length; i++) {
+        bytes[i] = parseInt(keyHex.substr(i * 2, 2), 16);
+      }
+
+      var stats = {
+        aborted: false, loaded: bytes.length, total: bytes.length, retry: 0,
+        chunkCount: 0, bwEstimate: 0,
+        loading: { start: 0, first: 0, end: 0 },
+        buffering: { start: 0, first: 0, end: 0 },
+        parsing: { start: 0, end: 0 }
+      };
+
+      setTimeout(function () {
+        callbacks.onSuccess({ url: context.url, data: bytes.buffer }, stats, context, null);
+      }, 0);
+    };
+
+    return DbKeyLoader;
+  }
+
+  function start(src) {
+  v.addEventListener('canplay', tryAutoplay);
+  if (window.Hls && Hls.isSupported()) {
+    hls = new Hls({ maxBufferLength: 30, enableWorker: true,
+      loader: EMBEDDED ? makeDbKeyLoader(EMBEDDED.keyData) : undefined });
+    hls.loadSource(src);
+    hls.attachMedia(v);
+    hls.on(Hls.Events.MANIFEST_PARSED, function (e, data) {
+      tryAutoplay();
+      var sel = $('level');
+      data.levels.forEach(function (l, i) {
+        var o = document.createElement('option');
+        o.value = i; o.textContent = l.height ? l.height + 'p' : Math.round(l.bitrate / 1000) + 'k';
+        sel.appendChild(o);
+      });
+      if (data.levels.length < 2) sel.style.display = 'none';
+    });
+    hls.on(Hls.Events.ERROR, function (e, d) {
+      if (!d.fatal) return;
+      if (d.type === Hls.ErrorTypes.NETWORK_ERROR) {
+        var code = d.response && d.response.code;
+        if (code === 404) { showMsg('视频不存在（id 无效）'); hls.destroy(); }
+        else { hls.startLoad(); }
+      } else if (d.type === Hls.ErrorTypes.MEDIA_ERROR) { hls.recoverMediaError(); }
+      else { showMsg('播放失败：' + d.details); hls.destroy(); }
+    });
+    $('level').onchange = function () { hls.currentLevel = +this.value; };
+  } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
+    v.src = src;   // Safari / iOS 原生 HLS
+    $('level').style.display = 'none';
+  } else {
+    showMsg('当前浏览器不支持 HLS 播放'); return;
+  }
+  }
+
+  // ===== 播放控制 =====
+  function toggle() { v.paused ? v.play().catch(function () {}) : v.pause(); }
+  $('play').onclick = toggle;
+  v.addEventListener('click', toggle);
+  v.addEventListener('dblclick', fs);
+  v.addEventListener('play',  function () { $('play').innerHTML = icons.pause; player.classList.add('playing'); });
+  v.addEventListener('pause', function () { $('play').innerHTML = icons.play;  player.classList.remove('playing'); });
+  v.addEventListener('waiting', function () { player.classList.add('loading'); });
+  ['playing', 'canplay', 'seeked'].forEach(function (n) {
+    v.addEventListener(n, function () { player.classList.remove('loading'); });
+  });
+  v.addEventListener('loadedmetadata', function () { $('dur').textContent = fmt(v.duration); player.classList.remove('loading'); });
+  v.addEventListener('durationchange', function () { $('dur').textContent = fmt(v.duration); });
+
+  v.addEventListener('timeupdate', function () {
+    if (!dragging) { $('prog').style.width = (v.currentTime / v.duration * 100 || 0) + '%'; $('cur').textContent = fmt(v.currentTime); }
+    saveProgress();
+  });
+  v.addEventListener('progress', function () {
+    if (v.buffered.length) $('buf').style.width = (v.buffered.end(v.buffered.length - 1) / v.duration * 100) + '%';
+  });
+
+  // 进度条拖动
+  var seek = $('seek'), dragging = false;
+  function ratio(e) { var r = seek.getBoundingClientRect(); return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); }
+  seek.addEventListener('pointerdown', function (e) {
+    dragging = true; seek.classList.add('drag'); seek.setPointerCapture(e.pointerId); update(e);
+  });
+  seek.addEventListener('pointermove', function (e) {
+    var r = ratio(e); $('tip').style.left = r * 100 + '%'; $('tip').textContent = fmt(r * v.duration);
+    if (dragging) update(e);
+  });
+  seek.addEventListener('pointerup', function (e) {
+    if (dragging) { v.currentTime = ratio(e) * v.duration; dragging = false; seek.classList.remove('drag'); }
+  });
+  function update(e) { var r = ratio(e); $('prog').style.width = r * 100 + '%'; $('cur').textContent = fmt(r * v.duration); }
+
+  // 音量 / 倍速 / 画中画 / 全屏
+  $('vol').oninput = function () { v.volume = +this.value; v.muted = false; };
+  $('mute').onclick = function () { v.muted = !v.muted; };
+  v.addEventListener('volumechange', function () {
+    $('mute').innerHTML = (v.muted || v.volume === 0) ? icons.muted : icons.vol;
+    $('vol').value = v.muted ? 0 : v.volume;
+  });
+  $('rate').onchange = function () { v.playbackRate = +this.value; };
+  if (!document.pictureInPictureEnabled) $('pip').style.display = 'none';
+  $('pip').onclick = function () {
+    document.pictureInPictureElement ? document.exitPictureInPicture() : v.requestPictureInPicture().catch(function () {});
+  };
+  function fs() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (player.requestFullscreen) player.requestFullscreen();
+    else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();   // iOS
+  }
+  $('full').onclick = fs;
+
+  // 键盘快捷键
+  document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    var k = e.key;
+    if (k === ' ' || k === 'k') { e.preventDefault(); toggle(); }
+    else if (k === 'ArrowLeft')  { v.currentTime -= 5; }
+    else if (k === 'ArrowRight') { v.currentTime += 5; }
+    else if (k === 'ArrowUp')    { e.preventDefault(); v.volume = Math.min(1, v.volume + .1); }
+    else if (k === 'ArrowDown')  { e.preventDefault(); v.volume = Math.max(0, v.volume - .1); }
+    else if (k === 'm') { v.muted = !v.muted; }
+    else if (k === 'f') { fs(); }
+  });
+
+  // 空闲时隐藏控制栏
+  var idleTimer;
+  function wake() { player.classList.remove('idle'); clearTimeout(idleTimer); idleTimer = setTimeout(function () { player.classList.add('idle'); }, 2500); }
+  ['mousemove', 'touchstart', 'keydown'].forEach(function (n) { player.addEventListener(n, wake); });
+  wake();
+
+  // 记忆播放进度（localStorage 不可用时静默忽略）
+  var key = 'pos:' + realId, lastSave = 0;
+  function saveProgress() {
+    var now = Date.now(); if (now - lastSave < 3000) return; lastSave = now;
+    try { localStorage.setItem(key, v.currentTime); } catch (e) {}
+  }
+  v.addEventListener('loadedmetadata', function () {
+    try {
+      var t = parseFloat(localStorage.getItem(key));
+      if (t > 5 && t < v.duration - 10) v.currentTime = t;
+    } catch (e) {}
+  });
+  v.addEventListener('ended', function () { try { localStorage.removeItem(key); } catch (e) {} });
+
+  v.addEventListener('error', function () { if (!hls) showMsg('视频加载失败'); });
+})();
+</script>
+</body>
+</html>
+
+
